@@ -25,4 +25,4 @@ See the full specification in this repository.
 VRP v1.0 is complete.  
 Future versions (v1.1, v2.0) will expand the protocol.
 
-VRP v0.1 — the first stable specification.VRP v1.0 — the philosophical foundation of the 
+VRP v0.1 — the first stable specification.VRP v1.0 — the philosophical foundation of the movement.
