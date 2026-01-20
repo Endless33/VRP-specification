@@ -1,28 +1,13 @@
-# VRP — Volatile Routing Protocol
+# VRP Specification
 
-**VRP v1.0 — Specification (Draft)**  
-A protocol that rejects tunnels, stability, and predictable structure.  
-VRP does not hide traffic — it dissolves form.  
-It does not create a route — it creates behavior.
+Formal specification of the VRP protocol.  
+Defines terminology, architecture, event structures, routing behavior, and entropy model.
 
-## What VRP is
-- volatile movement  
-- hop-by-hop rotation  
-- stateless routing  
-- ritual interfaces  
-- dissolution of predictability  
-- emergent exits  
+## Structure
 
-VRP is not a VPN.  
-Not Tor.  
-Not WireGuard.  
-It is a different class.
-
-## Document
-See the full specification in this repository.
+- `spec/` — official specification documents
+- `drafts/` — experimental notes and early-stage proposals
 
 ## Status
-VRP v1.0 is complete.  
-Future versions (v1.1, v2.0) will expand the protocol.
 
-VRP v0.1 — the first stable specification.VRP v1.0 — the philosophical foundation of the movement.
+The VRP specification is being prepared for structured release.
