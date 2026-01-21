@@ -1,88 +1,119 @@
-# VRP Session State Machine
+# VRP State Machine
 
-## 1. Overview
-
-This document defines the **session lifecycle and state transitions** for the Veil Routing Protocol (VRP).
-
-The state machine ensures that:
-- cryptographic material has a defined lifetime
-- route movement is explicit and controlled
-- error handling is deterministic
+This document defines the high-level state machine of the Veil Routing Protocol (VRP).
+It describes client session states and allowed transitions.
+This is a logical model, independent of implementation language.
 
 ---
 
-## 2. Session States
+## Overview
 
-INIT ↓ HANDSHAKE ↓ ACTIVE ↓ ROTATING ↓ TEARDOWN
+A VRP session is modeled as a finite-state machine.
+State transitions are driven by:
+- time
+- network signals
+- anomaly detection
+- policy decisions
+
+The client is the authoritative state controller.
 
 ---
 
-## 3. State Descriptions
+## States
 
 ### INIT
-- Client initializes configuration parameters
-- Ephemeral key material is generated
-- No network traffic is sent
+Initial state.
+The client initializes local context, entropy sources,
+and prepares for route construction.
 
 ---
 
-### HANDSHAKE
-- Secure handshakes are performed with selected relay nodes
-- Ephemeral session keys are negotiated
-- Failure in this state aborts session creation
+### ROUTE_CONSTRUCTION
+The client selects an initial route using available relay nodes.
+No route is reused from previous sessions.
+
+Transition to: KEY_EXCHANGE
 
 ---
 
-### ACTIVE
-- Encrypted traffic flows through the established route
-- Client continuously monitors:
-  - latency
-  - packet integrity
-  - jitter and anomalies
-- Periodic timers for route rotation are active
+### KEY_EXCHANGE
+Ephemeral keys are negotiated along the route.
+Forward secrecy is established.
+
+Transition to: ACTIVE_SESSION
 
 ---
 
-### ROTATING
-- Triggered by:
-  - anomaly detection
-  - periodic rotation timer
-- New route is constructed in parallel
-- Old route remains active until new route is ready
-- Old session keys are destroyed immediately after switch
+### ACTIVE_SESSION
+Normal data transmission state.
+Traffic flows through the current route.
+Continuous monitoring is active.
+
+Transitions:
+- to ROUTE_MUTATION
+- to ANOMALY_RESPONSE
+- to TERMINATION
 
 ---
 
-### TEARDOWN
-- Session termination is initiated
-- All cryptographic material is securely erased
-- Network resources are released
-- No state persists beyond this point
+### ROUTE_MUTATION
+The client updates the route according to:
+- periodic rotation policy
+- entropy requirements
+
+Keys are refreshed as needed.
+
+Transition to: ACTIVE_SESSION
 
 ---
 
-## 4. State Transition Triggers
+### ANOMALY_RESPONSE
+Triggered by detected anomalies:
+- suspected MITM
+- traffic manipulation
+- abnormal latency patterns
 
-| From State | To State | Trigger |
-|----------|----------|--------|
-| INIT | HANDSHAKE | Session start |
-| HANDSHAKE | ACTIVE | Successful handshake |
-| ACTIVE | ROTATING | Anomaly detected |
-| ACTIVE | ROTATING | Periodic rotation timer |
-| ROTATING | ACTIVE | New route established |
-| ANY | TEARDOWN | Fatal error or shutdown |
+Actions may include:
+- immediate route replacement
+- key refresh
+- temporary isolation
 
----
-
-## 5. Security Properties
-
-- Session keys exist only in ACTIVE or ROTATING states
-- Key material is destroyed on every route change
-- No state allows reuse of old cryptographic keys
-- Route movement is mandatory, not optional
+Transition to:
+- ROUTE_MUTATION
+- TERMINATION
 
 ---
 
-## 6. Summary
+### TERMINATION
+Session teardown.
+All ephemeral state is destroyed.
+No session data is retained.
 
-The VRP state machine ensures **bounded exposure, deterministic behavior, and safe cryptographic lifecycle management** across all sessions.
+Final state.
+
+---
+
+## State Transition Summary
+
+INIT
+ → ROUTE_CONSTRUCTION
+ → KEY_EXCHANGE
+ → ACTIVE_SESSION
+ ↔ ROUTE_MUTATION
+ ↔ ANOMALY_RESPONSE
+ → TERMINATION
+
+---
+
+## Invariant Enforcement
+
+At no point may:
+- a route remain static beyond defined limits
+- a node gain full path visibility
+- persistent identifiers be introduced
+
+Violations invalidate VRP compliance.
+
+---
+
+End of state machine.
