@@ -1,123 +1,123 @@
-# Packet Flow Walkthrough — VRP
+# VRP Packet Flow
 
-## 1. Overview
-
-This document describes the **step-by-step lifecycle of a single packet**
-as it travels through a VRP route.
-
-The goal is to clearly define:
-- where encryption occurs
-- where integrity is verified
-- where anomaly detection is applied
-- how route movement is triggered
+This document describes the logical flow of packets in the Veil Routing Protocol (VRP).
+It outlines how data moves through the system without exposing implementation-specific details.
 
 ---
 
-## 2. Route Structure
+## Overview
 
-A VRP route consists of:
+VRP packet flow is defined by:
+- segmented knowledge
+- ephemeral routing context
+- continuous movement
 
-Client → Entry Relay → Transit Relay(s) → Exit Relay → Destination
-
-Each hop maintains **independent ephemeral keys**.
-
----
-
-## 3. Packet Creation (Client Side)
-
-1. Application generates plaintext payload
-2. Payload is wrapped in a VRP packet structure
-3. Multiple encryption layers are applied (onion-style)
-4. Integrity tags are computed per hop
-5. Packet is sent to Entry Relay
-
-At no point does a single relay have access to:
-- plaintext payload
-- full route topology
-- client identity
+Each packet is processed with limited local context.
+No node has global awareness.
 
 ---
 
-## 4. Entry Relay Processing
+## High-Level Flow
 
-Upon receiving a packet, the Entry Relay:
+Client
+ → Entry Relay
+ → Blind Node Ring
+ → Veil Exit
+ → Target
 
-1. Verifies integrity tag
-2. Decrypts its encryption layer
-3. Updates hop-specific metadata
-4. Forwards packet to next relay
-
-If verification fails:
-- packet is dropped
-- anomaly counters are incremented
+The return path follows a separately constructed route.
 
 ---
 
-## 5. Transit Relay Processing
+## Client Responsibilities
 
-Transit relays repeat the same process:
+The client:
+- constructs the route
+- defines mutation policies
+- encrypts payloads
+- monitors behavior
+- triggers route changes
 
-- Verify integrity
-- Decrypt one layer
-- Forward to next hop
-
-Transit relays:
-- cannot identify client or destination
-- cannot correlate packets across rotations
-
----
-
-## 6. Exit Relay Processing
-
-The Exit Relay:
-
-1. Decrypts final encryption layer
-2. Extracts destination address
-3. Forwards payload to destination
-
-Responses from destination follow the reverse encrypted path.
+The client is the only entity with session-level awareness.
 
 ---
 
-## 7. Anomaly Detection Points
+## Relay Node Processing
 
-Anomaly detection occurs at:
+Each relay node:
+- decrypts only its local layer
+- forwards packets based on transient instructions
+- retains no route history
+- does not identify the client or destination
 
-- Client (global session view)
-- Entry Relay (local packet behavior)
-- Transit Relays (rate and integrity anomalies)
-
-Detected anomalies include:
-- repeated integrity failures
-- timing irregularities
-- packet loss patterns
-- latency spikes
+Nodes operate under blind forwarding assumptions.
 
 ---
 
-## 8. Route Movement Trigger
+## Blind Node Ring
 
-When anomaly thresholds are exceeded:
+Blind nodes:
+- are unaware of their position in the route
+- do not know predecessor or successor roles
+- cannot infer route length or topology
 
-1. Client transitions session to ROTATING state
-2. New route is constructed in parallel
-3. Traffic is switched atomically
-4. Old route keys are destroyed
-
-This minimizes exposure and prevents long-term correlation.
+This prevents structural reconstruction.
 
 ---
 
-## 9. Security Properties
+## Veil Exit Behavior
 
-- No packet travels unencrypted
-- No relay can observe full path
-- Route movement limits attack dwell time
-- Packet loss does not reveal session state
+The veil exit:
+- exposes traffic to the target network
+- does not know the client identity
+- does not retain session metadata
+- may be rotated or replaced dynamically
+
+Veil exits are disposable by design.
 
 ---
 
-## 10. Summary
+## Route Mutation Flow
 
-VRP packet flow prioritizes **confidentiality, compartmentalization,
-and rapid adaptation** in hostile network environments.
+During mutation:
+1. Client constructs a new route
+2. New keys are negotiated
+3. Traffic is gradually or immediately shifted
+4. Old route state is destroyed
+
+No overlap guarantees full observability.
+
+---
+
+## Anomaly-Triggered Flow
+
+If anomalies are detected:
+- packets may be delayed or dropped
+- route mutation is prioritized
+- session continuity is preserved if possible
+
+Security overrides performance.
+
+---
+
+## Packet Lifespan
+
+Packets are:
+- ephemeral
+- unlinkable
+- non-identifying
+
+After delivery, no persistent trace remains.
+
+---
+
+## Compliance Requirements
+
+Any implementation MUST ensure:
+- no packet enables route reconstruction
+- no node can correlate sessions
+- packet handling remains stateless beyond necessity
+
+---
+
+End of packet flow.
