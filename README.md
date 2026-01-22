@@ -1,3 +1,7 @@
+This repository is provided for review and testing purposes only.  
+
+All rights reserved. No copying, redistribution, or commercial use is permitted without explicit written permission.
+
 # ==== FILE: spec/threat-model.md ====
 # Threat Model: Veil Routing Protocol (VRP)
 
