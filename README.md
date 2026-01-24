@@ -15,6 +15,31 @@ Anything not explicitly covered in this document **must be considered out of sco
 
 ---
 
+🧠 Mutation Log: Access Policy
+
+Event: Temporary read-only access granted to external reviewers for protocol evaluation.  
+Scope: Core architecture, routing logic, adversarial scenarios, and behavioral specifications.  
+
+Access Rule:  
+- Every invited reviewer has 48 hours to show activity:  
+  - leave a comment,  
+  - open an issue,  
+  - ask a question,  
+  - or provide any signal of engagement.  
+
+If no signal is received within 48 hours:  
+- Access is revoked automatically  
+- No explanation is provided  
+- The door closes and the protocol moves forward
+
+Protocol Note:  
+Access is a ritual, not a right.  
+Silence is treated as withdrawal.  
+VRP does not wait for those who do not move.
+
+---
+
+
 ## 2. Design Philosophy
 
 VRP is based on the following core principles:
