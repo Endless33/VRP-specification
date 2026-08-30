@@ -1,0 +1,25 @@
+stateDiagram-v2
+
+    [*] --> Initialized
+
+    Initialized --> Active
+
+    Active --> Degraded
+
+    Active --> Recovering
+
+    Active --> Terminating
+
+    Degraded --> Active
+
+    Degraded --> Recovering
+
+    Degraded --> Terminating
+
+    Recovering --> Active
+
+    Recovering --> Terminating
+
+    Terminating --> Terminated
+
+    Terminated --> [*]

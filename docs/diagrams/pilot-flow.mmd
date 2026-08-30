@@ -1,0 +1,33 @@
+flowchart TD
+
+    A[Organization Contact]
+
+    B[Initial Engineering Review]
+
+    C{Suitable?}
+
+    D[Private Evaluation]
+
+    E[Runtime Integration]
+
+    F[Scenario Execution]
+
+    G[Evidence Generation]
+
+    H[Independent Verification]
+
+    I[Engineering Decision]
+
+    J[Pilot Closed]
+
+    A --> B
+    B --> C
+
+    C -->|Approved| D
+    C -->|Rejected| J
+
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I

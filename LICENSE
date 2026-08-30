@@ -1,0 +1,11 @@
+Copyright (c) 2026 Vitalijus Riabovas
+
+This repository contains the public engineering specification of the Veil Routing Protocol (VRP).
+
+Unless explicitly stated otherwise, all proprietary implementation details, runtime source code, algorithms, optimization techniques, confidential engineering methods and protected runtime mechanisms remain the exclusive intellectual property of the author.
+
+This repository documents publicly available architectural concepts and engineering guidance only.
+
+No license is granted to use, copy, reproduce, implement, reverse engineer or create derivative implementations of the Protected VRP Runtime except where explicitly permitted by separate written agreement.
+
+See individual documents for additional licensing information where applicable.

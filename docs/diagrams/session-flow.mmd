@@ -1,0 +1,33 @@
+flowchart LR
+
+    APP[Application]
+
+    API[Runtime API]
+
+    S1[Logical Session Created]
+
+    S2[Canonical Authority Established]
+
+    S3[Application Execution]
+
+    T[Transport Evolution]
+
+    R[Recovery Evaluation]
+
+    E[Engineering Evidence]
+
+    END[Session Terminated]
+
+    APP --> API
+    API --> S1
+    S1 --> S2
+    S2 --> S3
+
+    S3 --> T
+    T --> S3
+
+    T --> R
+    R --> S3
+
+    S3 --> E
+    E --> END

@@ -1,0 +1,30 @@
+flowchart TD
+
+    A[Session Created]
+
+    B[Authority Established]
+
+    C[Authority Active]
+
+    D[Authority Evaluation]
+
+    E[Canonical Transition]
+
+    F[Authority Confirmed]
+
+    G[Stale Authority]
+
+    H[Replay Attempt]
+
+    I[Reject]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+
+    G --> I
+    H --> I
+
+    I --> F

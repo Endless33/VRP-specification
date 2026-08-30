@@ -1,0 +1,27 @@
+flowchart TD
+
+    A[Normal Execution]
+
+    B[Failure Detected]
+
+    C[Recovery Evaluation]
+
+    D{Recovery Possible?}
+
+    E[Recovery Execution]
+
+    F[Recovery Validation]
+
+    G[Active]
+
+    H[Safe Termination]
+
+    A --> B
+    B --> C
+    C --> D
+
+    D -->|Yes| E
+    E --> F
+    F --> G
+
+    D -->|No| H

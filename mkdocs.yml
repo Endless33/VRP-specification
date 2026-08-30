@@ -1,0 +1,97 @@
+site_name: Veil Routing Protocol (VRP)
+site_description: Public Engineering Specification
+site_author: Vitalijus Riabovas
+repo_name: Endless33/VRP-specification
+repo_url: https://github.com/Endless33/VRP-specification
+
+theme:
+  name: material
+  language: en
+
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.instant
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+
+  - Home: index.md
+
+  - Architecture:
+      - Overview: docs/architecture/OVERVIEW.md
+      - Session ≠ Transport: docs/architecture/SESSION_NOT_TRANSPORT.md
+      - Authority Model: docs/architecture/AUTHORITY_MODEL.md
+      - Runtime State Machine: docs/architecture/RUNTIME_STATE_MACHINE.md
+
+  - RFC:
+      - RFC Index: docs/rfc/README.md
+
+  - ADR:
+      - ADR Index: docs/adr/README.md
+
+  - Runtime:
+      - Invariants: docs/runtime/INVARIANTS.md
+      - State Machine: docs/runtime/STATE_MACHINE.md
+      - Event Flow: docs/runtime/EVENT_FLOW.md
+      - Authority Transitions: docs/runtime/AUTHORITY_TRANSITIONS.md
+      - Failure Handling: docs/runtime/FAILURE_HANDLING.md
+      - Recovery Rules: docs/runtime/RECOVERY_RULES.md
+
+  - Security:
+      - Threat Model: docs/security/THREAT_MODEL.md
+      - Trust Boundary: docs/security/TRUST_BOUNDARY.md
+      - Security Model: docs/security/SECURITY_MODEL.md
+
+  - Evaluation:
+      - Test Matrix: docs/evaluation/TEST_MATRIX.md
+      - PASS Criteria: docs/evaluation/PASS_CRITERIA.md
+      - FAILURE Criteria: docs/evaluation/FAILURE_CRITERIA.md
+      - Reproducibility: docs/evaluation/REPRODUCIBILITY.md
+      - Evidence Format: docs/evaluation/EVIDENCE_FORMAT.md
+      - Audit Guide: docs/evaluation/AUDIT_GUIDE.md
+
+  - Integration:
+      - Embedding: docs/integration/EMBEDDING.md
+      - Runtime API: docs/integration/API.md
+      - Callbacks: docs/integration/CALLBACKS.md
+      - Events: docs/integration/EVENTS.md
+      - Configuration: docs/integration/CONFIGURATION.md
+      - Transports: docs/integration/TRANSPORTS.md
+
+  - Engineering:
+      - Design Principles: engineering/DESIGN_PRINCIPLES.md
+      - Roadmap: engineering/ROADMAP.md
+      - Versioning: engineering/VERSIONING.md
+      - Changelog: engineering/CHANGELOG.md
+
+  - Whitepaper:
+      - Executive Summary: whitepaper/VRP_EXECUTIVE_SUMMARY.md
+      - Engineering Overview: whitepaper/VRP_ENGINEERING_OVERVIEW.md
+      - Whitepaper: whitepaper/VRP_WHITEPAPER_v1.md
+
+  - Examples:
+      - Minimal: examples/minimal/README.md
+      - Server: examples/server/README.md
+      - Client: examples/client/README.md
+      - IoT: examples/iot/README.md
+      - Edge: examples/edge/README.md
