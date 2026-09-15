@@ -1,6 +1,3 @@
-mkdir -p docs/validation
-
-cat > docs/validation/SESSION_MANAGER_ADVERSARIAL_VALIDATION.md <<'EOF'
 # VRP Session Manager Adversarial Validation
 
 **Document Type:** Validation / Security Evidence Summary  
