@@ -1,6 +1,3 @@
-mkdir -p docs/security
-
-cat > docs/security/SESSION_LIFECYCLE_INVARIANTS.md <<'EOF'
 # VRP Session Lifecycle Invariants
 
 **Document Type:** Architecture / Security Specification  
