@@ -1,756 +1,415 @@
-# VRP Session Reincarnation / ABA Adversarial Test Model
+# VRP Session Reincarnation / ABA Test Model
 
-**Document Type:** Adversarial Validation Model  
-**Status:** Public Validation Specification  
-**Protocol:** Veil Routing Protocol (VRP)  
-**Security Surface:** Session Lifecycle / Reincarnation / Delayed Events  
-**Validation Class:** ABA / Stale-Lifetime Injection
+**Document Status:** Public Validation Model  
+**Scope:** Session lifecycle isolation  
+**Implementation:** Protected / Not Disclosed
 
 ---
 
-## 1. Purpose
+## Purpose
 
-This document defines the adversarial validation model for session reincarnation in VRP.
+This document describes the public validation model used to test session reincarnation safety in VRP.
 
-The test addresses a specific lifecycle boundary:
+The objective is to verify a fundamental lifecycle invariant:
 
-A session is destroyed.
+> An event belonging to an old session lifetime must never mutate a newer canonical lifetime that reuses the same logical Session ID.
 
-A new session is later created using the same external Session ID.
+This class of failure is commonly described as an ABA-style lifecycle problem.
 
-An event originating from the previous session lifetime arrives after the new session has become canonical.
+This document describes the tested security property and observable validation results.
 
-The required security property is:
-
-    OLD SESSION EVENT
-            MUST NOT
-    MUTATE NEW SESSION
-
-This property is independent from ordinary duplicate-event rejection, duplicate creation protection, and cross-session isolation.
+It does not disclose protected runtime implementation details.
 
 ---
 
-## 2. Security Invariant
+## Core Invariant
 
-The primary invariant is:
+VRP treats session identity and transport identity as separate concepts.
 
-    OLD SESSION
-    OLD AUTHORITY
-    OLD RUNTIME
-            |
-            X
-            |
-    MUST NEVER MUTATE
-    OR RESURRECT
-            |
-            v
-    NEW CANONICAL SESSION
+A transport may disappear, migrate, reconnect, or be replaced without redefining the canonical session.
 
-More formally:
+The stronger lifecycle requirement is:
 
-    SessionID(S1) == SessionID(S2)
+> OLD SESSION LIFETIME MUST NEVER MUTATE OR RESURRECT A NEW CANONICAL SESSION LIFETIME.
 
-does not imply:
-
-    Lifetime(S1) == Lifetime(S2)
-
-Therefore:
-
-    Event(S1) + CurrentSession(S2)
-
-must not automatically imply:
-
-    Apply(Event(S1), S2)
+This remains true even when the logical Session ID is reused.
 
 ---
 
-## 3. ABA Problem
+## Threat Model
 
-The ABA pattern occurs when an externally visible identity appears unchanged even though the underlying object or lifecycle has changed.
+Consider two different lifetimes of the same logical Session ID.
 
-For VRP:
+### Lifetime A
 
-    Session S1
-    SessionID = X
-          |
-          | Remove
-          v
-    no active session X
-          |
-          | Create
-          v
-    Session S2
-    SessionID = X
+Session ID:
 
-The external Session ID is identical.
+    S
 
-The session lifetime is not.
+Lifetime:
 
-This distinction is security-critical.
+    A
 
----
+The session progresses through normal state transitions.
 
-## 4. Threat Model
+An event belonging to Lifetime A is delayed somewhere in the system.
 
-The adversarial event may originate from:
+The original session is then removed.
 
-- delayed network delivery,
-- transport buffering,
-- asynchronous runtime processing,
-- a stale relay,
-- a stale worker,
-- a delayed goroutine,
-- retry logic,
-- queued control-plane work,
-- reordered event delivery,
-- stale authority execution.
+### Lifetime B
 
-The delayed event does not need to be maliciously forged.
+Later, a new canonical session is created using the same logical Session ID:
 
-A legitimate event from an obsolete session lifetime is sufficient to exercise the boundary.
+    Session ID: S
+    Lifetime: B
+
+The delayed event from Lifetime A now arrives.
+
+Without lifecycle fencing, the event may appear structurally valid because:
+
+- the Session ID exists again;
+- the event type is valid;
+- the new state machine may currently allow the requested transition.
+
+This is the ABA attack surface.
 
 ---
 
-## 5. Attack Sequence
+## Why State Validation Alone Is Insufficient
 
-The canonical test sequence is:
+A stale event is not necessarily an invalid state-machine event.
 
-    1. Create session S1.
+The adversarial validation intentionally places the new session in a state where the delayed event would otherwise represent a legal transition.
 
-    2. Advance S1 through a valid lifecycle.
+Example:
 
-    3. Construct or capture event E1 belonging to S1.
+    New lifetime state:
+    DETACH_TRANSPORT
 
-    4. Delay E1.
+    Delayed old-lifetime event:
+    MIGRATION_REQUESTED
 
-    5. Remove S1.
+A migration request can be meaningful from that state.
 
-    6. Verify S1 is no longer registered.
+Therefore a rejection caused only by the state machine would not demonstrate lifecycle isolation.
 
-    7. Create session S2 using the same external Session ID.
-
-    8. Advance S2 independently.
-
-    9. Place S2 into a state where E1 would otherwise represent
-       a syntactically valid state-machine transition.
-
-    10. Deliver E1.
-
-    11. Verify E1 is rejected or contained.
-
-    12. Verify canonical state of S2 remains unchanged.
+The test requires the event to be rejected specifically because it belongs to an obsolete session lifetime.
 
 ---
 
-## 6. Compatible-State Requirement
+## Historical Defect Reproduction
 
-A weak ABA test could produce a false security result.
+The adversarial test first reproduced the unsafe condition before lifecycle hardening was applied.
 
-For example:
+The sequence was conceptually:
 
-    S1 produces MigrationRequested
-
-then:
-
-    S1 removed
-    S2 created
-
-If the stale `MigrationRequested` event is delivered while S2 remains in its initial state, the state machine may reject it purely because the transition is out of order.
-
-That would prove transition-order enforcement.
-
-It would not prove session-reincarnation fencing.
-
-The stronger test deliberately advances S2 into a state where the stale event would otherwise be valid:
-
-    S1:
-    ACTIVE
-      |
-      v
-    PATH LOST
-      |
-      v
-    E1 = MigrationRequested
-         [DELAYED]
-
-    S1 REMOVED
-
-    S2:
-    ACTIVE
-      |
-      v
-    PATH LOST
-      |
-      v
-    compatible state
-
-    E1 FROM S1
-         |
-         v
-         X
-      MUST REJECT
-
-A successful rejection at this boundary provides substantially stronger evidence.
-
----
-
-## 7. Required Result
-
-Before stale-event injection:
-
-    State(S2) = X
-
-After stale-event injection:
-
-    State(S2) = X
-
-The stale event must not cause:
-
-    X -> Y
-
-for any unauthorized canonical state Y.
-
-Required successful verdict:
-
-    SESSION_REINCARNATION_FENCING_PRESERVED
-
-If the stale event is accepted and advances S2:
-
-    SESSION_REINCARNATION_FENCING_VIOLATED
-
-Such a result must be treated as a security-relevant lifecycle defect until investigated.
-
----
-
-## 8. Session ID Is Not Sufficient Authority
-
-The test explicitly validates:
-
-    SESSION ID != SESSION LIFETIME
-
-A Session ID may be necessary for locating a logical session namespace.
-
-It must not automatically constitute proof that an event belongs to the current lifetime occupying that namespace.
-
-The following relationship is forbidden:
-
-    stale lifetime
-          +
-    matching Session ID
-          =
-    canonical authority
-
----
-
-## 9. Authority Generation Is a Separate Dimension
-
-VRP runtime events may carry authority-generation information.
-
-Authority generation and session incarnation answer different questions.
-
-Authority generation asks:
-
-    Which authority lineage is current?
-
-Session incarnation asks:
-
-    Which lifetime of this Session ID is current?
-
-Therefore:
-
-    AUTHORITY GENERATION
-            !=
-    SESSION INCARNATION
-
-unless the protected implementation explicitly and correctly binds those properties together.
-
-The public specification does not require disclosure of the internal mechanism.
-
-It requires the externally observable property:
-
-    STALE LIFETIME
-          |
-          X
-          |
-    CURRENT LIFETIME
-
----
-
-## 10. Canonical State Requirement
-
-The primary measurement is canonical state.
-
-The test must capture:
-
-    stateBefore
-
-before stale-event delivery.
-
-It must capture:
-
-    stateAfter
-
-after stale-event delivery.
-
-For a correctly contained stale event:
-
-    stateAfter == stateBefore
-
-A returned error alone is insufficient if canonical state was mutated before the error was produced.
-
-Validation must therefore establish both:
-
-    STALE EVENT REJECTED
-
-and:
-
-    CANONICAL STATE UNCHANGED
-
----
-
-## 11. Event Observation vs Acceptance
-
-A runtime may retain attempted or rejected events as security evidence.
-
-Therefore:
-
-    EVENT OBSERVED
-            !=
-    EVENT ACCEPTED
-
-and:
-
-    EVENT LOGGED
-            !=
-    CANONICAL TRANSITION
-
-The security-critical failure condition is unauthorized canonical mutation.
-
-Evidence systems should make the disposition of rejected and accepted events distinguishable wherever external verification depends on that distinction.
-
----
-
-## 12. Deterministic Single-Event Validation
-
-The first validation phase should use one deterministic stale event.
-
-Example attack class:
-
-    OLD MigrationRequested
+    CREATE lifetime A
             |
             v
-    NEW compatible session lifetime
+    ESTABLISH
+            |
+            v
+    ATTACH TRANSPORT
+            |
+            v
+    PATH LOST
+            |
+            v
+    capture delayed MIGRATION_REQUESTED
+            |
+            v
+    REMOVE lifetime A
 
-Required result:
+    CREATE lifetime B
+    with the same logical Session ID
+            |
+            v
+    ESTABLISH
+            |
+            v
+    ATTACH TRANSPORT
+            |
+            v
+    PATH LOST
+            |
+            v
+    inject delayed event from lifetime A
 
-    REJECT / CONTAIN
+The historical RED result demonstrated that logical Session ID equality alone was insufficient to distinguish the two lifetimes.
 
-This establishes the fundamental lifecycle boundary before concurrency pressure is introduced.
-
----
-
-## 13. Repeated Validation
-
-After the deterministic test passes, it should be executed repeatedly.
-
-Target:
-
-    100 consecutive executions
-
-Expected result:
-
-    100 / 100 PASS
-
-The objective is to detect unstable lifecycle behavior that may not appear during one execution.
-
----
-
-## 14. Shuffle Validation
-
-The test should also be executed under shuffled test ordering where supported.
-
-Target:
-
-    repeated execution
-    shuffle enabled
-
-Required result:
-
-    PRESERVED
-
-This helps expose hidden dependence on surrounding test order or shared state.
+This result was preserved as engineering evidence rather than hidden by weakening the test.
 
 ---
 
-## 15. Race-Detector Validation
+## Required Lifecycle Property
 
-The reincarnation boundary should be exercised under the Go race detector.
-
-The race detector does not prove semantic lifecycle correctness.
-
-It provides an additional signal that the tested security property is not accidentally dependent on an unsafe memory race.
-
-Required semantic invariant remains:
-
-    OLD LIFETIME
-    MUST NOT MUTATE
-    NEW LIFETIME
-
----
-
-## 16. Concurrent Stale-Event Flood
-
-After deterministic validation succeeds, a stronger validation stage may inject multiple stale operations concurrently.
+The hardened architecture requires a canonical event to be associated with the specific session lifetime for which it was created.
 
 Conceptually:
 
-    S1 destroyed
-         |
-         +---- stale E1
-         +---- stale E2
-         +---- stale E3
-         +---- ...
-         +---- stale EN
-                  |
-                  v
-            CONCURRENT FLOOD
-                  |
-                  X
-                  |
-                 S2
+    Logical Session ID
+            +
+    Session Lifetime Identity
+            =
+    Canonical Event Ownership
 
-Candidate pressure:
-
-    workers = 256
-
-or:
-
-    workers = 512
-
-Required property:
-
-    ACCEPTED_STALE_CANONICAL_MUTATIONS = 0
-
-and:
-
-    State(S2) remains canonical
-
-The concurrent flood is a second-stage validation.
-
-It must not replace the deterministic proof.
+An event belonging to an obsolete lifetime must fail lifecycle validation before it can affect the new canonical lifetime.
 
 ---
 
-## 17. Remove / Recreate Race
+## Adversarial Validation
 
-A later validation stage should exercise concurrency between:
+The corrected adversarial test performs the following sequence:
 
-    Remove(S1)
+    1. Create session lifetime A.
 
-and:
+    2. Advance lifetime A through valid state transitions.
 
-    Create(S2)
+    3. Capture an event associated with lifetime A.
 
-using the same external Session ID.
+    4. Remove lifetime A.
 
-The objective is to determine whether an ambiguous lifecycle window exists in which:
+    5. Create lifetime B using the same logical Session ID.
 
-- old operations remain active,
-- new registration becomes visible,
-- stale events cross the lifecycle boundary.
+    6. Advance lifetime B into a state where the captured event
+       would otherwise represent a valid state transition.
 
-Required invariants:
+    7. Record:
+       - canonical state;
+       - transition-history length;
+       - accepted event-log length.
 
-    AT MOST ONE CURRENT CANONICAL LIFETIME
+    8. Inject the stale event from lifetime A.
 
-and:
+    9. Require lifecycle rejection.
 
-    OLD LIFETIME CANNOT CONTROL NEW LIFETIME
+    10. Verify that the new lifetime remains unchanged.
 
 ---
 
-## 18. Stale Runtime Boundary
+## Isolation Requirements
 
-Session-reincarnation validation should eventually include stale runtime references.
+A successful rejection must preserve all of the following.
+
+### Canonical State Isolation
+
+    state_before == state_after
+
+A rejected old-lifetime event must not move the new canonical state machine.
+
+### Transition History Isolation
+
+    history_before == history_after
+
+The rejected event must not create a canonical transition.
+
+### Accepted Event Log Isolation
+
+    event_log_before == event_log_after
+
+An event rejected by lifecycle fencing must not become an accepted canonical event.
+
+---
+
+## Validation Result
+
+The tested stale event was rejected before it could mutate the newer session lifetime.
+
+Observed properties:
+
+    Stale lifetime rejection        : PASS
+    Canonical state isolation       : PASS
+    Transition history isolation    : PASS
+    Rejected-event log isolation    : PASS
+    Same-ID reincarnation isolation : PASS
+
+The validation was repeated under stress and race-sensitive execution.
+
+Representative validation included:
+
+    Targeted adversarial execution : PASS
+    Repeated stress execution      : PASS
+    Race-sensitive execution       : PASS
+
+The corresponding engineering verdict was:
+
+    VRP_SESSION_REINCARNATION_FENCING_PRESERVED
+
+---
+
+## Restart Boundary
+
+Same-process reincarnation is only one lifecycle boundary.
+
+A stronger test asks what happens when the Session Manager itself is destroyed and recreated.
+
+A purely manager-local incarnation sequence may restart from its initial value.
 
 Conceptually:
 
-    Runtime R1
-       |
-       +---- references S1
-       |
-    S1 destroyed
-       |
-    S2 created
-       |
-    delayed R1 operation
-       |
-       X
-       |
-    S2
+    Manager A:
+        Session S
+        local incarnation = 1
 
-Required property:
+    restart
 
-    STALE_RUNTIME_MUTATION =
-    REJECTED / CONTAINED
+    Manager B:
+        Session S
+        local incarnation = 1
 
-This extends ABA validation beyond raw event delivery.
+Therefore local incarnation alone must not be interpreted as globally restart-safe lifecycle identity.
+
+VRP validates the restart boundary separately.
+
+The public restart model is documented independently so that same-manager ABA isolation and cross-restart lifetime isolation are not incorrectly treated as the same property.
 
 ---
 
-## 19. Stale Authority Boundary
+## Resource-Boundary Validation
 
-A further test should combine session reincarnation with stale authority:
+Lifecycle protection must not introduce an unlimited historical-state requirement.
 
-    S1
-    Authority A1
-         |
-         | destroy
-         v
-    S2
-    Authority A2
-         ^
-         |
-    stale A1 operation
+An earlier design retained lifecycle metadata for previously removed Session IDs.
 
-Required property:
+Adversarial unique-ID churn demonstrated that this approach could cause retained lifecycle metadata to grow with the number of historical Session IDs even when no sessions remained active.
 
-    A1 MUST NOT MUTATE S2
+The RED boundary was preserved.
 
-This validates the composition of:
+The design objective therefore became:
 
-    SESSION LIFECYCLE FENCING
+    ABA isolation
+            +
+    restart separation
+            +
+    bounded lifecycle metadata
 
-and:
-
-    AUTHORITY LINEAGE FENCING
-
-rather than assuming either property automatically proves the other.
+rather than solving one property by sacrificing another.
 
 ---
 
-## 20. Cross-Session Isolation
+## Fail-Closed Principle
 
-ABA protection must not weaken existing cross-session isolation.
+Lifecycle ambiguity must not silently become authority.
 
-For:
+If the runtime cannot establish the identity required to distinguish canonical lifetimes, it must not manufacture a weaker fallback identity and continue as though the lifecycle were authenticated.
 
-    S1
-    S2
-    S3
-
-operations against one session must not modify unrelated sessions.
-
-A reincarnation defense must therefore preserve:
-
-    CROSS_SESSION_ISOLATION
-
-while adding:
-
-    CROSS_LIFETIME_ISOLATION
-
-These are complementary security properties.
+The corresponding failure behavior is tested separately.
 
 ---
 
-## 21. Failure Handling
+## Security Ordering
 
-If the adversarial test fails:
+The required conceptual processing order is:
 
-    STOP
-
-The test must not be weakened merely to obtain a passing result.
-
-Preserve:
-
-    failing test name
-    exact failure output
-    Git HEAD
-    Git Tree
-    UTC timestamp
-    Go version
-    state before stale injection
-    state after stale injection
-    stale event type
-    race result if available
-
-A reproducible failure is engineering evidence.
-
-The next step is diagnosis of the violated invariant.
-
----
-
-## 22. Production-Fix Rule
-
-No production correction should be introduced before the failing behavior is reproduced and understood.
-
-Required workflow:
-
-    REPRODUCE
-        |
-        v
-    CAPTURE EVIDENCE
-        |
-        v
-    IDENTIFY VIOLATED INVARIANT
-        |
-        v
-    INSPECT LIFECYCLE BOUNDARY
-        |
-        v
-    MINIMAL PRODUCTION CORRECTION
-        |
-        v
-    ORIGINAL ADVERSARIAL TEST
-        |
-        v
-    STRESS
-        |
-        v
-    RACE
-        |
-        v
-    WHOLE-CORE REGRESSION
-
-The original adversarial test must remain intact.
-
----
-
-## 23. Evidence Requirements
-
-A successful validation record should preserve:
-
-    UTC timestamp
-
-    Git HEAD
-
-    Git Tree
-
-    Go version
-
-    exact adversarial test name
-
-    deterministic result
-
-    repeated result
-
-    shuffle result
-
-    race result
-
-    whole-Core regression result
-
-    source working-tree status
-
-    final verdict
-
-Where an evidence bundle is exported, its contents should be cryptographically bound by a manifest or equivalent integrity mechanism.
-
----
-
-## 24. Verdict Vocabulary
-
-Use:
-
-    SESSION_REINCARNATION_FENCING_PRESERVED
-
-only when the dedicated reincarnation attack has been successfully executed.
-
-Use:
-
-    SESSION_REINCARNATION_FENCING_VIOLATED
-
-when a stale event from a destroyed lifetime causes unauthorized canonical mutation of a recreated session.
-
-Use:
-
-    SESSION_REINCARNATION_VALIDATION_INCOMPLETE
-
-when the required validation surface was not fully exercised.
-
-Do not convert:
-
-    INCOMPLETE
-
-into:
-
-    PRESERVED
-
-without additional evidence.
-
----
-
-## 25. Public Claim Boundary
-
-Before successful validation, the correct statement is:
-
-    Session reincarnation fencing is an explicit
-    VRP security requirement under adversarial validation.
-
-After successful reproducible validation, the statement may become:
-
-    Session reincarnation fencing was preserved
-    under the recorded adversarial validation conditions.
-
-This distinction is intentional.
-
----
-
-## 26. Security Properties Exercised
-
-The completed deterministic validation is intended to exercise:
-
-    SESSION_REINCARNATION_FENCING
-
-    CROSS_LIFETIME_ISOLATION
-
-    STALE_EVENT_REJECTION
-
-    CANONICAL_STATE_IMMUTABILITY
-
-    SESSION_ID_REUSE_SAFETY
-
-    FAIL_CLOSED_LIFECYCLE_BOUNDARY
-
-Later concurrent extensions additionally exercise:
-
-    STALE_EVENT_FLOOD_CONTAINMENT
-
-    REMOVE_RECREATE_RACE_CONTAINMENT
-
-    STALE_RUNTIME_ISOLATION
-
-    STALE_AUTHORITY_ISOLATION
-
----
-
-## 27. Final Invariant
-
-The entire adversarial model reduces to one rule:
-
-    OLD SESSION
+    incoming event
           |
-          | destroyed
           v
-          X
+    session lookup
           |
-          | NO AUTHORITY ACROSS
-          | THIS LIFECYCLE BOUNDARY
           v
-    NEW SESSION
+    lifecycle validation
+          |
+          +---- invalid / stale ----> REJECT
+          |
+          v
+    accepted canonical event
+          |
+          v
+    state-machine validation
+          |
+          v
+    canonical transition
 
-Even when:
+The critical property is:
 
-    OLD.SessionID == NEW.SessionID
+> Lifecycle-invalid events are rejected before canonical mutation.
 
-VRP must preserve:
+---
 
-    OLD LIFETIME != NEW LIFETIME
+## Session Is Not Transport
 
-and therefore:
+This validation also reinforces the primary VRP architectural distinction:
 
-    OLD EVENT != CURRENT AUTHORITY
+    SESSION ≠ TRANSPORT
 
-The Session ID may be reused.
+Transport replacement is expected.
 
-Authority belonging to the destroyed session lifetime may not.
+Session reincarnation is a different security boundary.
+
+A transport may change while a session continues.
+
+A new session lifetime, however, must never inherit the authority of stale events merely because it reuses the same logical Session ID.
+
+---
+
+## What This Validation Demonstrates
+
+Under the tested conditions, the validation provides evidence for:
+
+- isolation between sequential lifetimes of the same Session ID;
+- rejection of stale events from a previous lifetime;
+- preservation of canonical state after rejection;
+- preservation of transition history after rejection;
+- preservation of accepted event-log state after rejection;
+- compatibility with repeated adversarial execution;
+- compatibility with race-sensitive execution.
+
+---
+
+## What This Validation Does Not Claim
+
+This document does not claim that:
+
+- every possible lifecycle attack has been exhausted;
+- every distributed deployment topology has been validated;
+- session lifecycle identity replaces authority epochs;
+- session lifecycle identity replaces lease epochs;
+- transport identity and session identity are equivalent;
+- the complete VRP implementation is publicly disclosed;
+- the complete VRP security model is proven solely by this test.
+
+The result applies to the explicitly tested lifecycle invariants.
+
+Additional restart, producer-binding, resource-boundary, malformed-input, concurrency, and recovery surfaces are validated independently.
+
+---
+
+## Protected Implementation Boundary
+
+The public model intentionally describes:
+
+    WHAT must remain invariant
+    WHAT attack is performed
+    WHAT observable result is required
+
+It does not describe:
+
+    HOW protected runtime internals implement the invariant
+    HOW private state is represented
+    HOW protected lifecycle material is generated internally
+    HOW private runtime coordination operates
+
+Those mechanisms remain part of the protected VRP Core.
+
+---
+
+## Engineering Principle
+
+VRP validation follows a simple rule:
+
+> A security property is stronger when an adversarial test can attempt to violate it and the resulting state can be independently inspected.
+
+For session reincarnation, the required observable outcome is:
+
+    OLD LIFETIME EVENT
+            |
+            v
+         REJECT
+            |
+            +--> NEW STATE UNCHANGED
+            |
+            +--> HISTORY UNCHANGED
+            |
+            +--> ACCEPTED EVENT LOG UNCHANGED
+
+That is the public validation contract for the VRP Session Reincarnation / ABA surface.
