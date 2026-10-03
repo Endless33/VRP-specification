@@ -1,1228 +1,1681 @@
 # VRP Controlled Deployment Acceptance
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Controlled Deployment Acceptance Framework  
-**Status:** Public  
-**Scope:** Controlled Deployment and Integration Evaluation  
-**Revision:** October 2026
+**Status:** Public controlled-deployment acceptance model  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document defines the public engineering criteria for moving Veil Routing Protocol (VRP) from controlled validation into an environment-specific deployment decision.
+This document defines the engineering conditions under which a VRP integration can move from controlled evaluation toward controlled deployment.
 
-It is intended for:
+It does not declare VRP universally production-ready.
 
-- infrastructure engineers;
-- systems engineers;
-- network engineers;
-- security reviewers;
-- integration teams;
-- technical evaluators;
-- deployment owners.
+It defines a narrower decision:
 
-The objective is to make deployment acceptance evidence-driven.
+> **Has the specific VRP build, integration, environment, and workload demonstrated the invariants required for this deployment?**
 
-VRP deployment acceptance should be based on observed behavior in the target environment rather than on architecture documentation alone.
+The decision must be based on observed behavior and evidence rather than architectural expectation alone.
 
 ---
 
-# 1. Deployment Principle
+## 2. Deployment Acceptance Is Environment-Specific
 
-The central VRP architectural property remains:
+A successful project-level validation does not automatically qualify every deployment.
 
-> **Session ≠ Transport**
+A deployment introduces its own:
 
-A controlled deployment should demonstrate that this property remains valid under the actual network and application conditions of the target environment.
+    OPERATING SYSTEM
 
-The deployment process should therefore evaluate more than nominal connectivity.
+    NETWORK TOPOLOGY
 
-It should deliberately exercise:
+    TRANSPORTS
 
-- transport interruption;
-- transport replacement;
-- migration;
-- recovery;
-- replay;
-- stale work;
-- authority transitions;
-- canonical state validation;
-- evidence verification.
+    APPLICATIONS
 
----
+    FAILURE MODES
 
-# 2. Current Engineering Position
+    SCALE
 
-VRP currently has engineering validation covering:
+    TIMING
 
-    SESSION / TRANSPORT SEPARATION
+    RESOURCE LIMITS
 
-    TRANSPORT MIGRATION
+    OPERATIONAL PROCEDURES
 
-    SESSION LIFETIME ISOLATION
-
-    STALE-WORK REJECTION
-
-    REPLAY REJECTION
-
-    AUTHORITY VALIDATION
-
-    AUTHORITY RECOVERY
-
-    CANONICAL STATE VALIDATION
-
-    CANONICAL EVENT ISOLATION
-
-    RUNTIME RECOVERY
-
-    CONCURRENCY
-
-    RUNTIME PRESSURE
-
-    LONG-DURATION EXECUTION
-
-    EVIDENCE INTEGRITY
-
-    INDEPENDENT EVIDENCE VERIFICATION
-
-These results provide the basis for controlled deployment evaluation.
-
-They do not eliminate the need to qualify the actual deployment environment.
+Controlled deployment acceptance therefore requires evidence from the target environment or a sufficiently representative environment.
 
 ---
 
-# 3. Controlled Deployment
+## 3. Acceptance States
 
-A controlled deployment is an environment where:
+A deployment evaluation may end in:
 
-- deployment scope is defined;
-- expected behavior is documented;
-- observability exists;
-- failure can be detected;
-- recovery can be measured;
-- evidence can be preserved;
-- operational ownership is known.
+    ACCEPTED
 
-The objective is to introduce VRP into a real integration environment without treating unknown behavior as acceptable by default.
+    ACCEPTED WITH CONDITIONS
 
----
+    NOT ACCEPTED
 
-# 4. Deployment Stages
+These states apply only to the documented scope.
 
-A recommended progression is:
-
-    STAGE 1
-    Environment Definition
-        |
-        v
-    STAGE 2
-    Integration
-        |
-        v
-    STAGE 3
-    Baseline Qualification
-        |
-        v
-    STAGE 4
-    Failure Qualification
-        |
-        v
-    STAGE 5
-    Migration Qualification
-        |
-        v
-    STAGE 6
-    Recovery Qualification
-        |
-        v
-    STAGE 7
-    Security Qualification
-        |
-        v
-    STAGE 8
-    Performance Qualification
-        |
-        v
-    STAGE 9
-    Long-Duration Qualification
-        |
-        v
-    STAGE 10
-    Evidence Review
-        |
-        v
-    DEPLOYMENT ACCEPTANCE DECISION
-
-Each environment may add additional stages.
+They are not universal certification labels.
 
 ---
 
-# 5. Environment Definition
+## 4. Required Scope Definition
 
-Before deployment qualification begins, the target environment should be documented.
+Before acceptance testing begins, the deployment should define:
 
-Relevant information includes:
+- build identity;
+- environment;
+- integration boundary;
+- expected transports;
+- expected applications;
+- expected session scale;
+- required continuity properties;
+- authority model where applicable;
+- required recovery behavior;
+- performance requirements;
+- evidence requirements.
 
-- operating system;
-- hardware architecture;
-- network topology;
-- available transports;
-- interface configuration;
-- relay topology where applicable;
-- application type;
-- expected session count;
-- expected migration frequency;
-- expected outage conditions;
-- latency expectations;
-- throughput requirements;
-- recovery requirements.
-
-This establishes the scope of the resulting deployment claim.
+A deployment cannot be meaningfully accepted against requirements that were never defined.
 
 ---
 
-# 6. Build Identification
+## 5. Build Identity
 
-The deployment candidate should be identifiable.
+The tested implementation must be identifiable.
 
-Where applicable, the qualification record should include information equivalent to:
+Where available, preserve information equivalent to:
 
     SOURCE_REVISION=<revision>
 
-    SOURCE_TREE=<tree identity>
+    SOURCE_TREE=<tree>
 
-    BUILD=<build identity>
+    BUILD_ID=<identity>
 
-    UTC=<qualification timestamp>
+    UTC=<timestamp>
 
-    ENVIRONMENT=<target environment>
+Acceptance applies to the evaluated engineering state.
 
-A deployment result should remain associated with the build that was actually evaluated.
-
----
-
-# 7. Baseline Qualification
-
-Before failure scenarios are introduced, the deployment should pass a baseline.
-
-The baseline should confirm:
-
-- runtime initialization;
-- integration availability;
-- session establishment;
-- expected canonical state;
-- evidence generation;
-- required observability.
-
-Expected result:
-
-    BASELINE=PASS
-
-Failure at baseline should be resolved before continuity conclusions are made.
+A later materially changed build requires appropriate requalification.
 
 ---
 
-# 8. Session Establishment Gate
+## 6. Environment Identity
 
-The deployment candidate must demonstrate reliable session establishment.
+The acceptance record should identify relevant environmental properties.
 
-The evaluator should confirm that:
+Examples include:
 
-- a session is created;
-- lifecycle progression is valid;
-- the expected active state is reached;
-- the session can be identified consistently.
+    OS
 
-Expected result:
+    KERNEL
 
-    SESSION_ESTABLISHMENT=PASS
+    ARCHITECTURE
 
----
+    RUNTIME / TOOLCHAIN
 
-# 9. Session Identity Gate
+    NETWORK TYPE
 
-The deployment must demonstrate that logical session identity is not accidentally defined by one transport.
+    TRANSPORT TYPES
 
-A migration scenario should demonstrate:
+    RELAY TOPOLOGY
 
-    SESSION_BEFORE=S
+    APPLICATION
 
-    TRANSPORT_BEFORE=A
+    EXPECTED SESSION LOAD
 
-followed by:
-
-    SESSION_AFTER=S
-
-    TRANSPORT_AFTER=B
-
-Expected result:
-
-    SESSION_IDENTITY_PRESERVED=YES
+The objective is reproducibility and scope control, not unnecessary infrastructure disclosure.
 
 ---
 
-# 10. Physical Transport Failure Gate
+## 7. Baseline Requirement
 
-A controlled deployment should exercise actual transport failure where operationally safe.
+Before failure injection, normal operation must succeed.
 
-The evaluator should observe the failure directly.
+Required baseline properties should include:
 
-A representative observation is:
+    RUNTIME INITIALIZATION=PASS
+
+    SESSION CREATION=PASS
+
+    REQUIRED LIFECYCLE PROGRESSION=PASS
+
+    TRANSPORT ATTACHMENT=PASS
+
+    EVIDENCE GENERATION=PASS
+
+If baseline operation fails, deployment acceptance should stop until the failure is understood.
+
+---
+
+## 8. Core Architectural Requirement
+
+The controlled deployment must preserve:
+
+> **Session ≠ Transport**
+
+For supported continuity scenarios, replacing the transport must not unnecessarily redefine the logical session.
+
+Expected relationship:
+
+    SESSION_BEFORE == SESSION_AFTER
+
+while:
+
+    TRANSPORT_BEFORE != TRANSPORT_AFTER
+
+where transport replacement is the tested scenario.
+
+---
+
+## 9. Transport Failure Requirement
+
+The deployment should exercise a real or representative loss of the active transport.
+
+Expected observation:
 
     TRANSPORT_REACHABILITY=LOST
 
-The scenario should not rely solely on simulated success output if a real transport interruption can be safely tested.
+The test should establish that an actual transport failure occurred rather than merely asserting that a migration function was called.
 
 ---
 
-# 11. Transport Recovery Gate
+## 10. Transport Recovery Requirement
 
-After the interruption, connectivity should be restored or replacement connectivity provided.
+The deployment should then restore connectivity or provide a viable replacement transport.
 
-A representative observation is:
+Expected observation:
 
     TRANSPORT_REACHABILITY=RECOVERED
 
-The evaluator should then determine whether the logical session behaved according to the continuity requirements.
+or an equivalent validated replacement condition.
+
+The runtime must then satisfy the defined recovery requirements.
+
+---
+
+## 11. Session Continuity Requirement
+
+For scenarios where continuity is expected:
+
+    TRANSPORT FAILURE
+           |
+           v
+    TRANSPORT REPLACEMENT
+           |
+           v
+    SESSION IDENTITY PRESERVED
+
+must hold.
+
+If the deployment intentionally defines a scenario where a new session should be created, that scenario should be classified separately.
+
+---
+
+## 12. Migration Requirement
+
+Supported migration must preserve the required logical continuity state.
+
+The deployment should verify:
+
+- migration initiation;
+- replacement viability;
+- lifecycle validity;
+- canonical state progression;
+- migration completion;
+- logical session identity.
+
+A successful migration should not be inferred solely from resumed traffic.
+
+---
+
+## 13. Repeated Migration Requirement
+
+If the operational environment expects frequent network movement, repeated migration should be qualified.
+
+Project-level engineering validation has exercised:
+
+    1000 migrations
+
+with session identity preserved.
+
+This is evidence that the repeated path has been exercised.
+
+It is not a requirement that every deployment reproduce exactly 1,000 migrations.
+
+The deployment should choose a workload representative of its intended operation.
+
+---
+
+## 14. Lifecycle Identity Requirement
+
+If a session can be recreated, the deployment must distinguish current and historical lifetimes.
+
+Required property:
+
+    SAME SESSION ID
+          !=
+    AUTOMATICALLY SAME CURRENT LIFETIME
+
+Historical operations must remain distinguishable from operations belonging to the current lifecycle.
+
+---
+
+## 15. Historical-Work Rejection Requirement
+
+The deployment should deliver work associated with an older lifecycle after a newer lifecycle is current.
 
 Expected result:
 
-    TRANSPORT_RECOVERY=PASS
-
----
-
-# 12. Transport Replacement Gate
-
-The deployment should demonstrate continuity across replacement of the active transport.
-
-The acceptance property is:
-
-> Transport replacement must not automatically require logical session replacement.
-
-Expected result:
-
-    TRANSPORT_REPLACED=YES
-
-    SESSION_IDENTITY_PRESERVED=YES
-
----
-
-# 13. Migration Gate
-
-Migration must be exercised in the target environment.
-
-The evaluator should verify:
-
-- migration is initiated;
-- the replacement path or transport is viable;
-- canonical lifecycle progression remains valid;
-- migration completes;
-- session identity remains coherent.
-
-Expected result:
-
-    MIGRATION=PASS
-
----
-
-# 14. Repeated Migration Gate
-
-Where migration is an expected operational behavior, repeated migration should be tested.
-
-VRP engineering validation has previously exercised:
-
-    1,000 migrations
-
-while preserving session identity in the recorded scenario.
-
-A deployment should define its own required migration count according to operational expectations.
-
----
-
-# 15. Network Transition Gate
-
-Where the deployment includes multiple network types, relevant transitions should be exercised.
-
-Examples may include:
-
-    Wi-Fi -> Mobile
-
-    Network A -> Network B
-
-    Path A -> Path B
-
-    Relay A -> Relay B
-
-The deployment should evaluate the transitions actually expected in production.
-
----
-
-# 16. Replay Gate
-
-The deployment should verify replay rejection through the supported validation surface.
-
-Expected result:
-
-    REPLAY_ACCEPTED=0
-
-Replay volume should be appropriate to the environment and risk model.
-
-VRP engineering validation has previously exercised thousands of replay attempts, including a recorded:
-
-    9,999 replay attempts rejected
-
-scenario.
-
----
-
-# 17. Duplicate Delivery Gate
-
-Duplicate delivery should not create duplicate canonical execution.
-
-Expected property:
-
-    ACCEPTED WORK=1
-
-    DUPLICATE CANONICAL ACCEPTANCE=0
-
-The deployment should preserve this property under its expected traffic conditions.
-
----
-
-# 18. Lifetime Isolation Gate
-
-Where session recreation is possible, the deployment should verify isolation between historical and current lifetimes.
-
-Expected property:
-
-    HISTORICAL LIFETIME
-            !=
-    CURRENT LIFETIME AUTHORITY
-
-Historical work should not regain current authority merely because the logical session identifier matches.
-
----
-
-# 19. Stale Work Gate
-
-Historical delayed work should be introduced after a newer lifecycle has become current.
-
-Expected result:
-
-    STALE_WORK=REJECTED
+    HISTORICAL_OPERATION=REJECTED
 
 and:
 
     CURRENT_LIFETIME_PRESERVED=YES
 
----
+Project-level validation has exercised:
 
-# 20. Invalid Transition Gate
+    TOTAL_INCARNATIONS=128
 
-The deployment should verify that invalid lifecycle transitions fail closed.
+    HISTORICAL_OPERATIONS=127
 
-Expected result:
+    HISTORICAL_REJECTED=127
 
-    INVALID_TRANSITION=REJECTED
+    HISTORICAL_ACCEPTED=0
 
-with:
-
-    CANONICAL_STATE_MUTATION=NONE
-
-    CANONICAL_HISTORY_MUTATION=NONE
+Target deployment qualification should test the same invariant at an appropriate scale.
 
 ---
 
-# 21. Terminal State Gate
+## 16. Replay Requirement
 
-Where terminal states are part of the integration, the deployment should verify that invalid ordinary work cannot silently resurrect them.
+Previously observed work must not become new canonical work when replayed.
 
-Expected result:
+Required result:
 
-    INVALID_TERMINAL_RESURRECTION=REJECTED
+    REPLAY_ACCEPTED=0
 
-Explicit supported recovery should remain distinguishable from accidental resurrection.
+Project-level engineering validation includes a recorded scenario with:
 
----
+    REPLAY_ATTEMPTS=9999
 
-# 22. Canonical Admission Gate
+    REPLAY_REJECTED=9999
 
-Canonical admission must remain fail-closed.
+    REPLAY_ACCEPTED=0
 
-Representative expected behavior:
-
-    missing lifecycle context
-        -> REJECTED
-
-    stale lifecycle context
-        -> REJECTED
-
-    invalid current transition
-        -> REJECTED
-
-    valid current operation
-        -> ELIGIBLE FOR ACCEPTANCE
-
-Expected result:
-
-    CANONICAL_ADMISSION=PASS
+The deployment should reproduce the invariant using its relevant traffic and integration path.
 
 ---
 
-# 23. Canonical History Gate
+## 17. Duplicate-Delivery Requirement
 
-The deployment should verify consistency between accepted state and canonical event history.
+Duplicate delivery must not produce duplicate canonical execution.
+
+Required behavior:
+
+    ORIGINAL -> ACCEPTED ONCE
+
+    DUPLICATE -> NOT NEW CANONICAL WORK
+
+The acceptance decision should be based on canonical execution state rather than transport counters alone.
+
+---
+
+## 18. Canonical Admission Requirement
+
+Accepted and rejected operations must have different canonical effects.
 
 For accepted work:
 
-    EXPECTED STATE CHANGE
+    STATE_DELTA=EXPECTED
 
-    EXPECTED HISTORY CHANGE
+    ACCEPTED_HISTORY_DELTA=1
 
-    EXACTLY ONE CANONICAL ACCEPTANCE
+    CANONICAL_EVENT_DELTA=1
 
 For rejected work:
 
-    STATE CHANGE=NONE
+    STATE_DELTA=0
 
-    HISTORY CHANGE=NONE
+    ACCEPTED_HISTORY_DELTA=0
 
-    CANONICAL EVENT CHANGE=NONE
+    CANONICAL_EVENT_DELTA=0
 
-Expected result:
-
-    CANONICAL_HISTORY_CONSISTENCY=PASS
+This is a mandatory state-integrity boundary.
 
 ---
 
-# 24. Authority Gate
+## 19. Canonical Admission Regression History
 
-Where authority management is included in the deployment, both authorized and unauthorized transitions should be tested.
+Engineering validation previously identified an ordering defect where a state-invalid event could enter canonical EventLog history before final rejection.
 
-Connectivity must not automatically establish authority.
+The defect was corrected.
+
+Regression coverage now verifies that rejected events do not contaminate canonical accepted history.
+
+This corrected boundary should remain part of deployment qualification because recovery and integration code may exercise it differently from isolated tests.
+
+---
+
+## 20. Invalid-State Requirement
+
+The deployment must verify that an event invalid for the current canonical state is rejected.
+
+Required result:
+
+    INVALID_TRANSITION=REJECTED
+
+with no canonical mutation.
+
+A transport failure or recovery condition must not weaken this requirement.
+
+---
+
+## 21. Terminal-State Requirement
+
+Terminal sessions must reject unsupported resurrection.
+
+Relevant states include:
+
+    SESSION_CLOSED
+
+    SESSION_FAILED
+
+Required behavior:
+
+    UNSUPPORTED_RESURRECTION
+             |
+             X
+          REJECTED
+
+Explicit supported recovery should be tested independently.
+
+---
+
+## 22. Duplicate-Create Requirement
+
+Retries, reconnect logic, or restart races may cause duplicate creation attempts.
+
+Required behavior:
+
+    EXISTING CANONICAL SESSION
+              +
+    DUPLICATE CREATE
+              |
+              X
+    NO COMPETING CANONICAL SESSION
+
+Duplicate creation must not silently fork canonical state.
+
+---
+
+## 23. Fail-Closed Requirement
+
+Controlled deployment requires fail-closed canonical admission.
+
+Representative behavior:
+
+    UNKNOWN CONTEXT       -> REJECT
+
+    MISSING LIFETIME      -> REJECT
+
+    STALE LIFETIME        -> REJECT
+
+    REPLAY                -> REJECT
+
+    INVALID STATE         -> REJECT
+
+    UNAUTHORIZED AUTHORITY -> REJECT
+
+A recovery path must not convert these cases into implicit acceptance.
+
+---
+
+## 24. Connectivity / Authority Separation
+
+Where authority management is in scope:
+
+    REACHABLE
+       !=
+    AUTHORIZED
+
+must remain true.
+
+A new path, relay, transport, or endpoint must not receive canonical authority merely because it became reachable.
+
+---
+
+## 25. Unauthorized Authority Requirement
+
+The deployment should attempt at least one unauthorized authority-sensitive operation.
 
 Expected result:
 
     UNAUTHORIZED_TRANSITION=REJECTED
 
-and:
-
-    VALID_AUTHORIZED_TRANSITION=ACCEPTED
+This verifies the negative side of the authority boundary.
 
 ---
 
-# 25. Authority Progression Gate
+## 26. Authorized Authority Requirement
 
-Where authority generations are exposed through the integration, accepted progression should remain ordered.
-
-A representative scenario is:
-
-    GENERATION=1
-        |
-        v
-    ACCEPTED AUTHORITY TRANSITION
-        |
-        v
-    GENERATION=2
-
-Historical authority should not silently replace the newer accepted generation.
-
----
-
-# 26. Authority Rollback Gate
-
-The deployment should attempt stale authority reuse where applicable.
+The deployment should also execute the corresponding valid authority path.
 
 Expected result:
+
+    AUTHORIZED_TRANSITION=ACCEPTED
+
+Testing only unauthorized rejection is insufficient if the valid operational path has never been demonstrated.
+
+---
+
+## 27. Authority Progression Requirement
+
+Where authority generations are used, progression must remain ordered.
+
+Representative sequence:
+
+    GENERATION 1
+        |
+        v
+    VALID AUTHORITY TRANSITION
+        |
+        v
+    GENERATION 2
+
+The newer generation must become canonical according to the defined authority model.
+
+---
+
+## 28. Authority Rollback Requirement
+
+Historical authority must not silently regain current status.
+
+Expected results:
 
     STALE_AUTHORITY=REJECTED
 
     AUTHORITY_ROLLBACK=REJECTED
 
-This is particularly important around restart and recovery conditions.
+This requirement is especially important around restart, failover, and regional recovery.
 
 ---
 
-# 27. Recovery Gate
+## 29. Restart Requirement
 
-The deployment must demonstrate recovery from at least one relevant failure scenario.
+If restart is operationally relevant, the deployment must test it.
 
-A representative lifecycle is:
+The scenario should include relevant combinations of:
 
-    SESSION_ACTIVE
-          |
-          v
-    TRANSPORT FAILURE
-          |
-          v
-    MIGRATION
-          |
-          v
+    CURRENT STATE
+
+    HISTORICAL STATE
+
+    DELAYED WORK
+
+    AUTHORITY
+
+    TRANSPORT RECOVERY
+
+The restart must not create a second incompatible canonical lineage.
+
+---
+
+## 30. Recovery Requirement
+
+A representative recovery scenario should exercise:
+
+    SESSION ACTIVE
+         |
+         v
+    FAILURE
+         |
+         v
+    REPLACEMENT / RESTORATION
+         |
+         v
     RECOVERY
-          |
-          v
-    SESSION_ACTIVE
+         |
+         v
+    VALID CANONICAL STATE
 
 Expected result:
 
     RECOVERY=PASS
 
+The exact scenario should match the target deployment.
+
 ---
 
-# 28. Recovery Integrity Gate
+## 31. Recovery Must Preserve Admission
 
-Recovery must not bypass security and lifecycle validation.
+Recovery is not an exception to normal validation.
 
 During recovery:
 
-    replay remains invalid
+    STALE -> REJECT
 
-    stale work remains invalid
+    REPLAY -> REJECT
 
-    unauthorized authority remains invalid
+    INVALID -> REJECT
 
-    invalid state transitions remain invalid
+    UNAUTHORIZED -> REJECT
 
-Expected result:
-
-    RECOVERY_ADMISSION=FAIL_CLOSED
+The deployment must not require bypassing these controls merely to restore service.
 
 ---
 
-# 29. Concurrency Gate
+## 32. Canonical Recovery Requirement
 
-Deployments expecting concurrent workloads should perform concurrency qualification.
+After recovery, the following should describe one coherent accepted execution:
+
+    CURRENT STATE
+
+    ACCEPTED TRANSITION HISTORY
+
+    CANONICAL EVENT HISTORY
+
+Contradictory results require investigation.
+
+Expected result:
+
+    CANONICAL_RECOVERY_CONSISTENCY=PASS
+
+---
+
+## 33. Application Qualification
+
+Application continuity must be evaluated separately.
+
+Possible valid report:
+
+    VRP_SESSION_CONTINUITY=PASS
+
+    APPLICATION_CONTINUITY=PASS
+
+Another possible result:
+
+    VRP_SESSION_CONTINUITY=PASS
+
+    APPLICATION_CONTINUITY=FAIL
+
+For example, an application may enforce its own timeout shorter than the network outage.
+
+The deployment decision should identify which layer failed.
+
+---
+
+## 34. Performance Qualification
+
+Correctness does not automatically imply acceptable performance.
+
+The target deployment should define its own requirements for:
+
+    LATENCY
+
+    RECOVERY TIME
+
+    THROUGHPUT
+
+    CPU
+
+    MEMORY
+
+    MIGRATION RATE
+
+    SESSION SCALE
+
+A result may legitimately be:
+
+    CORRECTNESS=PASS
+
+    PERFORMANCE=FAIL
+
+Such a deployment is not accepted if performance is mandatory.
+
+---
+
+## 35. Performance Cannot Override Correctness
+
+The reverse case is also important:
+
+    PERFORMANCE=PASS
+
+    CANONICAL_CORRECTNESS=FAIL
+
+must not be accepted.
+
+Low latency or high throughput cannot compensate for:
+
+- stale-work acceptance;
+- replay acceptance;
+- authority rollback;
+- canonical divergence.
+
+Correctness gates remain mandatory.
+
+---
+
+## 36. Resource Qualification
+
+Resource behavior should be measured under representative load.
+
+Relevant values may include:
+
+    CPU
+
+    MEMORY
+
+    GOROUTINE / WORKER COUNT
+
+    SESSION COUNT
+
+    TRANSPORT COUNT
+
+    EVIDENCE SIZE
+
+    LONG-RUN GROWTH
+
+The target organization should define acceptable limits.
+
+Project-level correctness testing does not define universal production capacity.
+
+---
+
+## 37. Concurrency Qualification
+
+If the deployment is concurrent, the qualification must be concurrent.
 
 Relevant workloads may include:
 
-- multiple sessions;
-- overlapping path observations;
-- concurrent packet processing;
+- multiple active sessions;
+- simultaneous migration;
+- recovery while unrelated sessions continue;
 - delayed historical work;
-- simultaneous recovery activity.
+- concurrent packet processing;
+- authority transitions.
 
-The workload should reflect expected production behavior.
-
----
-
-# 30. Race Qualification
-
-Where supported by the engineering environment, relevant runtime tests should be exercised under race detection or equivalent concurrency diagnostics.
-
-The result should supplement invariant testing.
-
-It should not replace it.
+The objective is to verify that concurrency does not invalidate the required state guarantees.
 
 ---
 
-# 31. Runtime Pressure Gate
+## 38. Race Qualification
 
-The deployment should evaluate behavior under realistic network pressure.
+Relevant test families should be exercised under available race/concurrency diagnostics where practical.
 
-Relevant conditions may include:
+Project-level validation has repeatedly used Go race detection.
 
-- latency variation;
-- jitter;
-- packet reordering;
-- congestion;
-- temporary connectivity loss;
-- repeated migration.
+Race detection is useful evidence.
 
-Expected result:
+It does not replace semantic invariant testing.
 
-    REQUIRED_INVARIANTS=PRESERVED
-
-or:
-
-    FAILURE=CONTAINED
-
-according to the defined scenario.
+Both are required where applicable.
 
 ---
 
-# 32. Performance Gate
+## 39. Network Pressure Qualification
 
-The deployment organization should define measurable performance requirements.
+The target environment should exercise realistic degraded conditions.
 
-Relevant metrics may include:
+These may include:
 
-    throughput
+    JITTER
 
-    latency
+    LATENCY SPIKES
 
-    migration duration
+    REORDERING
 
-    recovery duration
+    CONGESTION
 
-    CPU consumption
+    TEMPORARY LOSS
 
-    memory consumption
+    REPEATED MIGRATION
 
-    session scale
-
-    transport scale
-
-    evidence overhead
-
-VRP does not define one universal acceptable number for all deployments.
+The required invariants should remain preserved or failure should remain safely contained.
 
 ---
 
-# 33. Scale Gate
+## 40. Long-Duration Qualification
 
-The deployment should test the scale it intends to operate.
+Controlled deployment acceptance should not rely exclusively on short tests.
 
-A small pilot should not automatically be interpreted as evidence for an unrelated large-scale deployment.
+The target environment should include extended execution appropriate to its intended use.
 
-Scale qualification should define:
+Project-level VRP validation has included:
 
-- concurrent sessions;
-- active transports;
-- migration frequency;
-- traffic volume;
-- evidence volume;
-- runtime duration.
+- approximately hour-scale network turbulence;
+- extended link interruption;
+- repeated runtime cycles;
+- week-scale harness execution.
 
----
-
-# 34. Long-Duration Gate
-
-Production acceptance should include extended execution.
-
-Long-duration qualification is useful for detecting:
-
-- resource growth;
-- delayed race conditions;
-- accumulated state inconsistencies;
-- historical work interactions;
-- repeated migration effects.
-
-VRP engineering validation has previously included week-scale harness execution.
-
-The deployment should choose a duration appropriate to its operational requirements.
+Target-environment duration requirements remain deployment-specific.
 
 ---
 
-# 35. Application Gate
+## 41. Read-Boundary Qualification
 
-Where VRP carries application traffic, application behavior must be measured separately from protocol continuity.
+Integration code may consume read-oriented runtime APIs.
 
-The qualification report should distinguish:
+The deployment should confirm that it understands the ownership semantics of those APIs.
 
-    VRP SESSION RESULT
+Reviewed VRP engineering surfaces include:
+
+- managed-session snapshots;
+- EventLog snapshots;
+- event metadata;
+- path-health reads;
+- relay-list reads;
+- transport-registry list semantics.
+
+Caller mutation must not unexpectedly become canonical runtime mutation unless the API explicitly represents a live runtime object.
+
+---
+
+## 42. Intentional Shared Runtime Objects
+
+Not every exported object is intended to be immutable.
+
+For example, active Transport objects may preserve runtime object identity even when the list containing them is detached.
+
+Similarly, composed runtime Manager and Authority components intentionally preserve shared identity.
+
+Controlled deployment must therefore distinguish:
+
+    SNAPSHOT / READ VALUE
 
 from:
 
-    APPLICATION RESULT
+    LIVE RUNTIME COMPONENT
 
-An application-specific timeout should not automatically be classified as a VRP identity failure.
-
-Likewise, preserved VRP identity should not automatically be represented as proof that every application requirement was satisfied.
+Security and correctness depend on respecting the documented boundary.
 
 ---
 
-# 36. Evidence Gate
+## 43. Evidence Requirement
 
-Important qualification scenarios should produce reviewable evidence.
+Every deployment-blocking acceptance scenario should produce reviewable evidence.
 
-Depending on the scenario, this may include:
-
-- build identity;
-- timestamp;
-- environment;
-- scenario;
-- observable events;
-- counters;
-- canonical summary;
-- manifest;
-- integrity information;
-- final verdict.
-
-Expected result:
-
-    EVIDENCE_CAPTURE=PASS
-
----
-
-# 37. Evidence Integrity Gate
-
-Where integrity-bound evidence is generated, the deployment should verify that inconsistent modification is detectable.
-
-Expected result:
-
-    ORIGINAL_EVIDENCE=VERIFIABLE
-
-and:
-
-    INCONSISTENT_MODIFICATION=DETECTED
-
----
-
-# 38. Independent Verification Gate
-
-Where public verification tooling applies to the scenario, evidence should be evaluated independently of the original runtime execution.
-
-Expected result:
-
-    INDEPENDENT_VERIFICATION=PASS
-
-The scope of the result is the exposed verification contract.
-
-It is not equivalent to complete formal proof of the runtime.
-
----
-
-# 39. Observability Gate
-
-The deployment should provide enough operational visibility to answer:
-
-    Is the session active?
-
-    Which transport is available?
-
-    Did transport reachability fail?
-
-    Did migration occur?
-
-    Did recovery occur?
-
-    Was stale work rejected?
-
-    Was replay rejected?
-
-    Did authority change?
-
-    Did evidence verification succeed?
-
-A deployment that cannot distinguish these outcomes is difficult to operate safely.
-
----
-
-# 40. Operational Ownership Gate
-
-Before production acceptance, operational responsibility should be clear.
-
-The organization should identify responsibility for:
-
-- deployment;
-- monitoring;
-- incident response;
-- configuration;
-- upgrades;
-- evidence retention;
-- rollback;
-- integration support.
-
-Technology alone does not define operational ownership.
-
----
-
-# 41. Rollback Gate
-
-A controlled deployment should define a rollback strategy.
-
-The organization should know:
-
-- when rollback is triggered;
-- who can authorize it;
-- how application traffic is handled;
-- what evidence is preserved before rollback;
-- how the failed condition will be investigated.
-
-Rollback capability is part of controlled deployment engineering.
-
----
-
-# 42. Incident Evidence
-
-Unexpected runtime behavior should preserve enough information for investigation.
-
-Useful incident context may include:
+Where applicable, evidence should identify:
 
     UTC
 
-    BUILD IDENTITY
+    BUILD
+
+    SOURCE REVISION
+
+    SOURCE TREE
 
     ENVIRONMENT
 
-    SESSION OBSERVATIONS
+    SCENARIO
 
-    TRANSPORT OBSERVATIONS
+    OBSERVATIONS
 
-    AUTHORITY OBSERVATIONS
+    COUNTERS
 
-    EVIDENCE VERIFICATION RESULT
+    SUMMARY
 
-The objective is reproducibility where practical.
+    MANIFEST
 
----
+    VERDICT
 
-# 43. Failure Policy
-
-The organization should define what constitutes:
-
-    RECOVERABLE FAILURE
-
-    CONTAINED FAILURE
-
-    DEPLOYMENT-BLOCKING FAILURE
-
-For example, replay rejection is expected behavior.
-
-Replay acceptance as new canonical work would be a fundamentally different result.
-
-The deployment policy should distinguish them.
+The exact structure depends on the scenario.
 
 ---
 
-# 44. Deployment-Blocking Conditions
+## 44. Evidence Integrity Requirement
 
-The following results should require investigation before unconditional acceptance:
+Where evidence is integrity-bound:
 
-    STALE HISTORICAL WORK ACCEPTED AS CURRENT
+    ORIGINAL EVIDENCE
+          |
+          v
+    VERIFICATION PASS
+
+while:
+
+    INCONSISTENTLY MODIFIED EVIDENCE
+          |
+          v
+    VERIFICATION FAIL
+
+should hold.
+
+The deployment should not accept a successful verdict if the evidence supporting it fails integrity verification.
+
+---
+
+## 45. Semantic Verification Requirement
+
+Hash correctness alone is insufficient.
+
+The verifier must evaluate scenario meaning where supported.
+
+Examples:
+
+    REPLAY_ACCEPTED == 0
+
+    HISTORICAL_ACCEPTED == 0
+
+    SESSION_BEFORE == SESSION_AFTER
+
+    STALE_AUTHORITY_ACCEPTED == 0
+
+A perfectly hashed evidence set containing a failed invariant is still a failed validation.
+
+---
+
+## 46. Independent Verification Requirement
+
+Where supported by the public verification boundary, deployment evidence should be checked separately from the runtime process that produced it.
+
+Expected relationship:
+
+    RUNTIME EXECUTION
+          |
+          v
+       EVIDENCE
+          |
+          v
+    SEPARATE VERIFIER
+          |
+          v
+       VERDICT
+
+This reduces dependence on self-reported runtime success.
+
+---
+
+## 47. Runtime PASS vs Verification FAIL
+
+The following condition is deployment-blocking until explained:
+
+    RUNTIME_VERDICT=PASS
+
+    INDEPENDENT_VERIFICATION=FAIL
+
+The runtime's own PASS must not override contradictory verification evidence.
+
+The discrepancy must be investigated.
+
+---
+
+## 48. Evidence Verification Is Not Source Verification
+
+Controlled deployment must preserve this distinction:
+
+    INDEPENDENT EVIDENCE VERIFICATION
+                !=
+    INDEPENDENT SOURCE-CODE VERIFICATION
+
+The public verifier can evaluate the exposed evidence contract.
+
+It does not automatically inspect every protected implementation path.
+
+Organizations requiring source-level assurance should treat that as a separate review requirement.
+
+---
+
+## 49. Security Qualification
+
+Controlled deployment should include the security-relevant invariants applicable to the environment.
+
+At minimum, the core VRP model should evaluate:
+
+    LIFETIME ISOLATION
+
+    REPLAY REJECTION
+
+    CANONICAL ADMISSION
+
+    FAIL-CLOSED BEHAVIOR
+
+Where authority is in scope:
+
+    UNAUTHORIZED AUTHORITY REJECTION
+
+    STALE AUTHORITY REJECTION
+
+    ROLLBACK REJECTION
+
+should also be evaluated.
+
+---
+
+## 50. Security Review Beyond VRP Invariants
+
+VRP invariant validation does not replace deployment security engineering.
+
+A production-oriented deployment may separately require review of:
+
+    HOST HARDENING
+
+    KEY MANAGEMENT
+
+    CREDENTIAL MANAGEMENT
+
+    DEPENDENCIES
+
+    NETWORK POLICY
+
+    DENIAL-OF-SERVICE EXPOSURE
+
+    APPLICATION SECURITY
+
+    OBSERVABILITY
+
+    INCIDENT RESPONSE
+
+These concerns extend beyond the continuity runtime itself.
+
+---
+
+## 51. Host Trust
+
+A compromised execution environment can invalidate assumptions beyond the scope of normal VRP invariant validation.
+
+Controlled deployment should therefore define its host trust model.
+
+VRP evidence alone does not prove that the operating system, operator, or hardware environment is uncompromised.
+
+---
+
+## 52. Denial-of-Service Qualification
+
+Fail-closed admission prevents invalid work from becoming valid canonical work.
+
+It does not imply unlimited resistance to resource exhaustion.
+
+The deployment should separately evaluate relevant limits involving:
+
+    CPU
+
+    MEMORY
+
+    BANDWIDTH
+
+    CONNECTION RATE
+
+    SESSION RATE
+
+    VERIFICATION COST
+
+Availability under hostile load is an environment-specific requirement.
+
+---
+
+## 53. Observability Qualification
+
+The deployment should determine which operational signals are required.
+
+Useful categories may include:
+
+    SESSION STATE
+
+    LIFETIME IDENTITY
+
+    TRANSPORT STATE
+
+    MIGRATION
+
+    AUTHORITY GENERATION
+
+    REJECTION COUNTERS
+
+    RECOVERY
+
+    EVIDENCE VERIFICATION
+
+Observability should help operators distinguish transport failure from canonical-state failure.
+
+---
+
+## 54. Trace Requirements
+
+Where event traces are used, lifecycle identity should remain observable.
+
+A trace containing only:
+
+    SessionID
+
+may be ambiguous across reincarnations.
+
+VRP trace output supports lifecycle context including:
+
+    lifetime_epoch
+
+    incarnation
+
+This helps reviewers distinguish historical and current events.
+
+---
+
+## 55. Operational Failure Classification
+
+Operations should distinguish at least:
+
+    TRANSPORT FAILURE
+
+    SESSION CONTINUITY FAILURE
+
+    AUTHORITY FAILURE
+
+    APPLICATION FAILURE
+
+    PERFORMANCE FAILURE
+
+    EVIDENCE VERIFICATION FAILURE
+
+These conditions require different responses.
+
+A single generic "connection failed" alarm is insufficient for serious continuity diagnosis.
+
+---
+
+## 56. Rollback Planning
+
+Controlled deployment should define what happens if VRP acceptance conditions fail after deployment begins.
+
+A rollback plan should identify:
+
+- how the deployment is stopped;
+- how traffic is returned to the previous architecture where applicable;
+- how evidence is preserved;
+- how affected sessions are handled;
+- how the failed condition is investigated.
+
+Rollback planning is an operational requirement, not an admission bypass.
+
+---
+
+## 57. Deployment Expansion
+
+Acceptance for one scope should not automatically authorize unrestricted expansion.
+
+A controlled progression may be:
+
+    LAB
+
+      ->
+
+    CONTROLLED PILOT
+
+      ->
+
+    LIMITED DEPLOYMENT
+
+      ->
+
+    EXPANDED DEPLOYMENT
+
+Each expansion may require additional qualification when scale, topology, workload, or failure exposure materially changes.
+
+---
+
+## 58. Requalification Triggers
+
+Requalification should be considered after material changes involving:
+
+    CANONICAL STATE LOGIC
+
+    LIFECYCLE LOGIC
+
+    AUTHORITY LOGIC
+
+    TRANSPORT INTEGRATION
+
+    RECOVERY LOGIC
+
+    CRYPTOGRAPHIC BOUNDARIES
+
+    EVIDENCE FORMAT
+
+    VERIFIER LOGIC
+
+    MAJOR DEPENDENCIES
+
+    DEPLOYMENT TOPOLOGY
+
+Not every code change requires full requalification.
+
+The scope should match the changed risk boundary.
+
+---
+
+## 59. Defect Handling
+
+A defect discovered during controlled deployment should follow an evidence-oriented process:
+
+    OBSERVE
+       |
+       v
+    PRESERVE EVIDENCE
+       |
+       v
+    REPRODUCE
+       |
+       v
+    ISOLATE
+       |
+       v
+    CORRECT
+       |
+       v
+    ADD REGRESSION
+       |
+       v
+    REQUALIFY
+
+This process has already been used during VRP engineering validation for real state and API-boundary defects.
+
+---
+
+## 60. Defect Discovery Does Not Automatically Invalidate the Entire Architecture
+
+A defect should be evaluated according to its actual boundary.
+
+For example:
+
+    READ-API MUTABLE ALIAS DEFECT
+
+does not automatically mean:
+
+    TRANSPORT CONTINUITY MODEL INVALID
+
+Likewise, a migration failure in one environment does not automatically invalidate replay rejection.
+
+Acceptance decisions should identify the affected invariant rather than converting every defect into an undefined global verdict.
+
+---
+
+## 61. Mandatory Deployment Blockers
+
+The following conditions are deployment-blocking for any scope that depends on the affected invariant:
+
+    STALE LIFETIME WORK ACCEPTED
 
     REPLAY ACCEPTED AS NEW CANONICAL WORK
+
+    INVALID TRANSITION ACCEPTED
+
+    REJECTED EVENT RECORDED AS CANONICALLY ACCEPTED
+
+    UNEXPECTED SESSION IDENTITY REPLACEMENT
 
     UNAUTHORIZED AUTHORITY ACCEPTED
 
     AUTHORITY ROLLBACK ACCEPTED
 
-    REJECTED EVENT ENTERED CANONICAL HISTORY
-
     CANONICAL STATE / HISTORY DIVERGENCE
 
-    SESSION IDENTITY UNEXPECTEDLY REPLACED DURING SUPPORTED MIGRATION
+    REQUIRED RECOVERY FAILURE
 
-    REQUIRED RECOVERY FAILED
+    UNRESOLVED EVIDENCE VERIFICATION FAILURE
 
-    EVIDENCE INCONSISTENT WITH CLAIMED RESULT
-
-These conditions directly affect core VRP invariants.
+These results require investigation before acceptance.
 
 ---
 
-# 45. Environment-Specific Issues
+## 62. Conditional Issues
 
-Not every failed measurement is necessarily a core protocol invariant failure.
+Some findings may allow:
 
-Examples of environment-specific issues include:
+    ACCEPTED WITH CONDITIONS
 
-- application timeout configuration;
-- insufficient infrastructure capacity;
-- monitoring integration;
-- transport-specific performance;
-- operating-system configuration;
-- deployment-specific routing;
-- external dependency behavior.
+rather than immediate rejection.
 
-These should be classified separately and investigated on their own evidence.
+Examples may include:
 
----
+    performance below future scale target
 
-# 46. Acceptance Matrix
+    monitoring integration incomplete
 
-A controlled deployment may use the following baseline matrix:
+    operational automation incomplete
 
-    Build identified                         REQUIRED
+    application timeout requires tuning
 
-    Environment documented                   REQUIRED
+    non-critical observability improvement required
 
-    Baseline                                 PASS
-
-    Session establishment                    PASS
-
-    Session identity                         PASS
-
-    Physical/controlled interruption         PASS
-
-    Transport recovery                       PASS
-
-    Transport replacement                    PASS
-
-    Migration                                PASS
-
-    Replay rejection                         PASS
-
-    Stale-work rejection                     PASS
-
-    Invalid-transition rejection             PASS
-
-    Canonical admission                      PASS
-
-    Canonical history consistency            PASS
-
-    Recovery                                 PASS
-
-    Evidence capture                         PASS
-
-    Evidence verification                    PASS
-
-    Authority validation                     WHEN IN SCOPE
-
-    Authority rollback                       WHEN IN SCOPE
-
-    Network pressure                         RECOMMENDED
-
-    Concurrency                              RECOMMENDED
-
-    Long-duration execution                  REQUIRED FOR PRODUCTION ACCEPTANCE
-
-    Application qualification                WHEN IN SCOPE
-
-    Performance qualification                ENVIRONMENT SPECIFIC
-
-    Scale qualification                      ENVIRONMENT SPECIFIC
-
-    Operational monitoring                   REQUIRED
-
-    Rollback procedure                       REQUIRED
+The condition must not conceal failure of a mandatory canonical invariant.
 
 ---
 
-# 47. Acceptance Verdicts
+## 63. Acceptance Matrix
 
-The final deployment review should use explicit language.
+A controlled deployment can use the following minimum matrix:
 
-Recommended verdict categories are:
-
-## ACCEPTED
-
-The required invariants and environment-specific acceptance gates passed under the evaluated deployment scope.
-
-## CONDITIONAL
-
-Core evaluated invariants passed, but identified environment-specific work remains before unrestricted operation.
-
-## NOT ACCEPTED
-
-One or more mandatory invariants or deployment requirements failed or remain unresolved.
-
-The verdict should always include the evaluated scope.
-
----
-
-# 48. Evidence-Based Acceptance
-
-The final decision should be traceable to evidence.
-
-The desired relationship is:
-
-    REQUIREMENT
-        |
-        v
-    SCENARIO
-        |
-        v
-    OBSERVATION
-        |
-        v
-    EVIDENCE
-        |
-        v
-    VERIFICATION
-        |
-        v
-    ACCEPTANCE DECISION
-
-This prevents deployment approval from depending only on presentation quality or undocumented assumptions.
+| Property | Acceptance Requirement |
+|---|---|
+| Build identity | Recorded |
+| Environment identity | Recorded |
+| Baseline | Pass |
+| Session establishment | Pass |
+| Session / transport separation | Pass |
+| Transport interruption | Exercised |
+| Transport recovery | Pass |
+| Migration | Pass |
+| Historical-lifetime rejection | Pass |
+| Replay rejection | Pass |
+| Duplicate containment | Pass |
+| Invalid-transition rejection | Pass |
+| Canonical admission atomicity | Pass |
+| Terminal-state protection | Pass where exercised |
+| Duplicate-create isolation | Pass |
+| Recovery | Pass |
+| Canonical recovery consistency | Pass |
+| Authority validation | Pass when in scope |
+| Authority rollback | Pass when in scope |
+| Concurrency | Qualified for target workload |
+| Network pressure | Qualified |
+| Resource use | Within target limits |
+| Long-duration execution | Qualified |
+| Application behavior | Qualified when required |
+| Evidence capture | Pass |
+| Evidence integrity | Pass |
+| Independent evidence verification | Pass where supported |
+| Rollback procedure | Defined |
 
 ---
 
-# 49. Existing Engineering Evidence
+## 64. Core Acceptance Formula
 
-Before controlled deployment, VRP has already accumulated engineering evidence across:
+For a deployment depending on VRP continuity, the minimum conceptual acceptance relationship is:
 
-- real UDP continuity;
-- physical network interruption;
-- Wi-Fi/mobile transition;
-- path migration;
-- transport collapse and recovery;
-- repeated migration;
-- replay flooding;
-- stale lifetime rejection;
-- repeated reincarnation;
-- authority continuity;
-- authority rollback rejection;
-- canonical recovery;
-- resource-bounded execution;
-- deterministic concurrency;
-- race detection;
-- evidence modification detection;
-- historical rewrite detection;
-- independent evidence verification;
-- long-duration execution.
+    BASELINE
+        AND
+    SESSION_CONTINUITY
+        AND
+    LIFETIME_ISOLATION
+        AND
+    REPLAY_REJECTION
+        AND
+    CANONICAL_ADMISSION
+        AND
+    FAIL_CLOSED_RECOVERY
+        AND
+    EVIDENCE_CONSISTENCY
+        =
+    CORE_ACCEPTANCE
 
-This evidence provides a starting point.
+Where authority is part of the deployment:
 
-The target environment must still generate its own relevant qualification evidence.
-
----
-
-# 50. Existing Numerical Validation Examples
-
-Recorded VRP engineering validation includes examples such as:
-
-    9,999 replay attempts rejected
-
-    1,000 transport migrations completed
-    with session identity preserved
-
-    128 sequential session incarnations
-
-    127 historical delayed operations rejected
-
-    approximately 41.6 seconds of observed
-    physical transport interruption
-
-    1,000 repeated deterministic
-    concurrency executions
-
-These numbers describe specific recorded validation scenarios.
-
-They are not universal performance limits or deployment guarantees.
+    CORE_ACCEPTANCE
+        AND
+    AUTHORITY_VALIDATION
+        AND
+    STALE_AUTHORITY_REJECTION
+        AND
+    ROLLBACK_REJECTION
+        =
+    AUTHORITY_AWARE_ACCEPTANCE
 
 ---
 
-# 51. Production Acceptance
+## 65. ACCEPTED
 
-Production acceptance should occur only after the target organization has evaluated the properties relevant to its environment.
+The deployment may be classified:
 
-A production decision should consider:
+    ACCEPTED
 
-- functional correctness;
-- continuity;
-- failure behavior;
-- security;
-- performance;
-- scale;
-- observability;
-- operations;
-- rollback;
-- evidence.
+when all mandatory requirements for the defined scope pass and no unresolved blocker remains.
 
-The decision belongs to the deploying organization.
+The acceptance statement should identify the scope.
+
+Example:
+
+> Accepted for the evaluated build, environment, transports, workload, scale, and failure scenarios.
+
+It should not imply universal certification.
 
 ---
 
-# 52. No Universal Production Claim
+## 66. ACCEPTED WITH CONDITIONS
 
-VRP does not claim that one validation environment automatically proves readiness for every possible deployment.
+The deployment may be classified:
 
-Different environments may have different:
+    ACCEPTED WITH CONDITIONS
 
-- network behavior;
-- latency;
-- transport characteristics;
-- scale;
-- applications;
-- operational requirements;
-- security requirements.
+when mandatory canonical invariants pass but explicitly documented non-blocking conditions remain.
 
-The deployment acceptance process exists specifically because these differences matter.
+Every condition should include:
 
----
+    CONDITION
 
-# 53. Engineering Readiness
+    OWNER
 
-The current project-level status can be summarized as:
+    REQUIRED ACTION
 
-    CORE ARCHITECTURE                  IMPLEMENTED
+    ACCEPTANCE IMPACT
 
-    SESSION CONTINUITY                 VALIDATED
-
-    TRANSPORT MIGRATION                VALIDATED
-
-    LIFETIME ISOLATION                 VALIDATED
-
-    REPLAY RESISTANCE                  VALIDATED
-
-    AUTHORITY CONTROL                  VALIDATED
-
-    CANONICAL ADMISSION                VALIDATED
-
-    RECOVERY                           VALIDATED
-
-    CONCURRENCY QUALIFICATION          VALIDATED
-
-    EVIDENCE INTEGRITY                 VALIDATED
-
-    INDEPENDENT VERIFICATION           VALIDATED
-
-    REAL NETWORK VALIDATION            COMPLETED
-
-    CONTROLLED DEPLOYMENT              READY FOR EVALUATION
-
-    TARGET ENVIRONMENT QUALIFICATION   REQUIRED
+where appropriate to the organization.
 
 ---
 
-# 54. Acceptance Philosophy
+## 67. NOT ACCEPTED
 
-VRP deployment acceptance follows a simple philosophy:
+The deployment should be classified:
 
-> **Do not ask whether the network failed. Make it fail deliberately and observe whether the required invariants survive.**
+    NOT ACCEPTED
 
-A useful deployment evaluation should not avoid:
+when a mandatory invariant fails or a deployment-blocking discrepancy remains unresolved.
 
-- transport loss;
-- path changes;
-- replay;
-- stale work;
+A negative acceptance result is a valid engineering outcome.
+
+It is preferable to production dependency on an unverified assumption.
+
+---
+
+## 68. Relationship to Existing Transport Technologies
+
+Controlled deployment acceptance should not be based on the claim that VRP invented migration or failover.
+
+Existing technologies already provide important mechanisms including:
+
+    QUIC CONNECTION MIGRATION
+
+    MULTIPATH TCP
+
+    VPN / TUNNEL ROAMING
+
+    APPLICATION RECONNECT
+
+    LOAD-BALANCER FAILOVER
+
+VRP should instead be evaluated on the properties it explicitly owns in the target architecture.
+
+---
+
+## 69. Property-Based Comparison
+
+A useful comparison asks:
+
+    What owns logical session identity?
+
+    What owns transport identity?
+
+    How is a new lifetime distinguished?
+
+    What happens to delayed historical work?
+
+    How is replay rejected?
+
+    Where is canonical state owned?
+
+    How is authority transferred?
+
+    What happens during restart?
+
+    What evidence can be independently verified?
+
+Different technologies may solve different subsets of these problems.
+
+A deployment should use the architecture that satisfies its actual requirements.
+
+---
+
+## 70. VRP May Complement Existing Transports
+
+VRP does not require every underlying transport feature to be reimplemented by VRP.
+
+A deployment may use transport technologies that already provide:
+
+- encryption;
+- congestion control;
+- multipath;
 - migration;
-- recovery.
+- roaming;
+- retransmission.
 
-These are precisely the conditions under which the continuity architecture should be evaluated.
+VRP's evaluated boundary is the continuity and canonical-state model layered around the transport relationship.
 
----
-
-# 55. Final Acceptance Statement
-
-The accumulated VRP engineering evidence supports progression into controlled deployment evaluation.
-
-The runtime has been exercised against substantial continuity, lifecycle, authority, recovery, concurrency, and evidence-integrity scenarios.
-
-The remaining deployment question is therefore not simply:
-
-> "Has VRP ever worked?"
-
-A more useful question is:
-
-> **"Does VRP preserve the required validated invariants in this specific environment, under the failures and operating conditions that matter to this deployment?"**
-
-That question should be answered with environment-specific evidence.
+This allows deployment architecture to reuse existing transport capabilities where appropriate.
 
 ---
 
-## Overall Status
+## 71. Formal Verification Position
 
-    ARCHITECTURE
-    IMPLEMENTED
+Controlled deployment acceptance is based on engineering evidence.
 
-    CORE CONTINUITY INVARIANTS
-    VALIDATED
+The current validation program includes:
 
-    FAILURE / RECOVERY MODEL
-    VALIDATED
+    REGRESSION TESTING
 
-    PUBLIC EVIDENCE MODEL
-    VALIDATED
+    ADVERSARIAL SCENARIOS
 
-    CONTROLLED DEPLOYMENT EVALUATION
-    READY
+    FAILURE INJECTION
 
-    ENVIRONMENT-SPECIFIC ACCEPTANCE
-    TO BE DETERMINED BY DEPLOYMENT EVIDENCE
+    CONCURRENCY TESTING
 
----
+    RACE DETECTION
 
-## Public Scope
+    REAL NETWORK INTERRUPTION
 
-This document defines externally relevant controlled-deployment acceptance criteria and public engineering expectations.
+    LONG-DURATION EXECUTION
 
-Protected runtime implementation details are intentionally outside its scope.
+    EVIDENCE INTEGRITY TESTING
+
+    INDEPENDENT EVIDENCE VERIFICATION
+
+Unless separately documented, controlled deployment acceptance does not mean complete formal mathematical verification of the runtime.
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Controlled Deployment Documentation — October 2026**
+## 72. External Security Review
+
+An organization may require additional assurance beyond the public validation boundary.
+
+Possible requirements include:
+
+    INDEPENDENT SOURCE REVIEW
+
+    CRYPTOGRAPHIC REVIEW
+
+    PENETRATION TESTING
+
+    THREAT-MODEL REVIEW
+
+    FORMAL METHODS
+
+    COMPLIANCE ASSESSMENT
+
+These can complement controlled deployment acceptance.
+
+They are not implied merely by a successful VRP pilot.
+
+---
+
+## 73. Current Project-Level Engineering Record
+
+The current VRP engineering record includes successful validation of scenarios involving:
+
+    REAL TRANSPORT INTERRUPTION
+
+    TRANSPORT REPLACEMENT
+
+    1000 REPEATED MIGRATIONS
+
+    9999 REPLAY ATTEMPTS REJECTED
+
+    128 SESSION INCARNATIONS
+
+    127 HISTORICAL OPERATIONS REJECTED
+
+    CANONICAL ADMISSION ATOMICITY
+
+    TERMINAL RESURRECTION REJECTION
+
+    DUPLICATE-CREATE ISOLATION
+
+    AUTHORITY PROGRESSION
+
+    AUTHORITY ROLLBACK REJECTION
+
+    RESTART-ORIENTED AUTHORITY RECOVERY
+
+    CONCURRENCY
+
+    RACE DETECTION
+
+    LONG-DURATION TURBULENCE
+
+    EVIDENCE MODIFICATION DETECTION
+
+    HISTORICAL REWRITE DETECTION
+
+    INDEPENDENT EVIDENCE VERIFICATION
+
+These results justify controlled evaluation.
+
+They do not eliminate target-environment qualification.
+
+---
+
+## 74. Current Deployment Position
+
+The current public engineering position is:
+
+    IMPLEMENTED CONTINUITY RUNTIME       YES
+
+    CORE INVARIANT VALIDATION            YES
+
+    TRANSPORT FAILURE VALIDATION         YES
+
+    LIFETIME ISOLATION                   YES
+
+    REPLAY REJECTION                     YES
+
+    CANONICAL ADMISSION                  YES
+
+    AUTHORITY VALIDATION                 YES
+
+    RECOVERY VALIDATION                  YES
+
+    CONCURRENCY VALIDATION               YES
+
+    EVIDENCE INTEGRITY                   YES
+
+    INDEPENDENT EVIDENCE VERIFICATION    YES
+
+    CONTROLLED INTEGRATION               APPROPRIATE
+
+    CONTROLLED DEPLOYMENT EVALUATION     APPROPRIATE
+
+    TARGET ENVIRONMENT QUALIFICATION     REQUIRED
+
+    UNIVERSAL PRODUCTION CERTIFICATION   NOT CLAIMED
+
+---
+
+## 75. Acceptance Record
+
+A final controlled-deployment record should contain:
+
+    BUILD IDENTITY
+
+    ENVIRONMENT
+
+    DEPLOYMENT SCOPE
+
+    REQUIRED INVARIANTS
+
+    SCENARIOS EXECUTED
+
+    PERFORMANCE REQUIREMENTS
+
+    SCALE REQUIREMENTS
+
+    OBSERVED RESULTS
+
+    EVIDENCE REFERENCES
+
+    VERIFICATION RESULTS
+
+    KNOWN LIMITATIONS
+
+    OPEN CONDITIONS
+
+    FINAL ACCEPTANCE STATE
+
+This creates an auditable engineering decision rather than an informal statement that testing "looked good."
+
+---
+
+## 76. Final Decision Principle
+
+Controlled deployment acceptance should answer:
+
+> **Did the implementation preserve the required invariants in the environment where we intend to depend on them?**
+
+Not:
+
+> Does the architecture sound plausible?
+
+Not:
+
+> Did a demo look successful?
+
+Not:
+
+> Did the runtime print PASS?
+
+Not:
+
+> Did a different environment pass previously?
+
+The acceptance decision should be based on evidence from the relevant engineering boundary.
+
+---
+
+## Conclusion
+
+VRP has progressed beyond a purely architectural continuity concept.
+
+The implementation has been exercised against:
+
+    transport loss
+
+    transport replacement
+
+    migration
+
+    stale historical work
+
+    replay
+
+    duplicate delivery
+
+    invalid transitions
+
+    terminal resurrection
+
+    duplicate creation
+
+    authority rollback
+
+    restart races
+
+    concurrency
+
+    network turbulence
+
+    mutable API boundaries
+
+    evidence modification
+
+    historical rewrite
+
+The resulting engineering record supports controlled integration and controlled deployment evaluation.
+
+It does not justify a universal claim that every environment is already qualified.
+
+The appropriate deployment position is:
+
+> **Use the existing VRP validation record as the engineering baseline, then deliberately challenge the same required invariants in the actual target environment before depending on them.**
+
+A controlled deployment is accepted when those required properties survive the conditions under which the deployment will actually operate.
+
+That is the acceptance boundary.
