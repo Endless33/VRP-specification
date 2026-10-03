@@ -1,427 +1,372 @@
 # VRP Pilot Acceptance Criteria
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Pilot Acceptance Criteria  
-**Status:** Public  
-**Scope:** Controlled Pilot and Deployment Evaluation  
-**Revision:** October 2026
+**Status:** Public engineering acceptance criteria  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document defines a public engineering framework for evaluating Veil Routing Protocol (VRP) during a controlled pilot.
+This document defines the engineering criteria for evaluating VRP in a controlled pilot.
 
-The purpose is to make pilot evaluation concrete.
+It is not a sales checklist and it does not assume that a pilot must succeed.
 
-A VRP pilot should not be considered successful because:
+The purpose of the pilot is to answer a narrower question:
 
-- a demonstration looked convincing;
-- a connection remained active once;
-- a terminal printed PASS;
-- a transport migration completed under ideal conditions.
+> **Does the VRP implementation preserve the required continuity, lifecycle, canonical-state, authority, and evidence properties in the evaluator's actual environment?**
 
-The pilot should evaluate explicit continuity properties against observable evidence.
+A pilot should therefore produce one of three useful outcomes:
 
-This document defines those properties without disclosing protected runtime implementation details.
+    ACCEPTED
 
----
+    CONDITIONALLY ACCEPTED
 
-# 1. Pilot Objective
+    NOT ACCEPTED
 
-The primary objective of a VRP pilot is to determine whether the runtime preserves the required session continuity properties in the evaluator's environment.
-
-The central architectural property is:
-
-> **Session ≠ Transport**
-
-The pilot should therefore evaluate behavior when transport conditions change.
-
-The evaluator should be able to observe whether:
-
-- session identity remains coherent;
-- transport can be replaced;
-- migration can complete;
-- stale work is rejected;
-- replay is rejected;
-- authority remains controlled;
-- recovery follows the canonical lifecycle;
-- evidence remains internally consistent.
+A failed invariant is an engineering result, not something that should be hidden to preserve a successful-looking pilot.
 
 ---
 
-# 2. Pilot Is an Evaluation
+## 2. Pilot Scope
 
-A pilot is not an automatic production certification.
+A VRP pilot is a controlled integration evaluation.
 
-Its purpose is to generate environment-specific evidence.
+It should define:
 
-The expected progression is:
+- the VRP build being evaluated;
+- the execution environment;
+- the application or workload;
+- the available transports;
+- the expected failure conditions;
+- the invariants being evaluated;
+- the evidence that will support the result.
 
-    BASELINE
-       |
-       v
-    INTEGRATION
-       |
-       v
-    FAILURE VALIDATION
-       |
-       v
-    MIGRATION VALIDATION
-       |
-       v
-    RECOVERY VALIDATION
-       |
-       v
-    EVIDENCE VERIFICATION
-       |
-       v
-    ENVIRONMENT-SPECIFIC ASSESSMENT
-
-The final production decision remains with the deploying organization.
+The pilot should not be treated as universal certification for unrelated environments.
 
 ---
 
-# 3. Minimum Pilot Preconditions
+## 3. Acceptance Model
 
-Before continuity testing begins, the pilot environment should identify:
+Each important pilot claim should follow:
 
-- target operating environment;
-- relevant network interfaces;
-- transport types;
-- expected application behavior;
-- observability requirements;
-- expected outage conditions;
-- expected migration conditions;
-- recovery expectations;
-- performance requirements;
-- acceptance owner.
+    REQUIREMENT
+        |
+        v
+    SCENARIO
+        |
+        v
+    OBSERVATION
+        |
+        v
+    EVIDENCE
+        |
+        v
+    VERIFICATION
+        |
+        v
+    VERDICT
 
-The evaluator should also establish which build or revision is being tested.
-
----
-
-# 4. Baseline Identity
-
-The pilot should begin from an identifiable baseline.
-
-Where applicable, evidence should record information equivalent to:
-
-    UTC timestamp
-    source revision
-    source tree identity
-    runtime version
-    operating environment
-    scenario identifier
-
-The objective is to ensure that later results can be associated with the actual evaluated runtime state.
+This structure separates demonstrated behavior from assumptions.
 
 ---
 
-# 5. Baseline Acceptance Criterion
+## 4. Build Identification
 
-Before failure injection, the runtime should demonstrate stable nominal operation.
+Before validation begins, the tested build should be identifiable.
 
-The baseline should confirm:
+Where available, record information equivalent to:
 
-- runtime initialization succeeds;
-- the intended validation scenario can execute;
-- a session can be established;
-- the expected canonical state is reached;
-- evidence collection is functioning.
+    SOURCE_REVISION=<revision>
 
-Expected result:
+    SOURCE_TREE=<tree>
+
+    BUILD=<build identity>
+
+    UTC=<timestamp>
+
+The purpose is traceability.
+
+A successful result should remain associated with the implementation state that produced it.
+
+---
+
+## 5. Environment Identification
+
+The pilot should document the relevant environment.
+
+Useful information may include:
+
+    operating system
+
+    architecture
+
+    runtime/toolchain version
+
+    network topology
+
+    transport types
+
+    relay topology
+
+    application
+
+    expected session scale
+
+The environment description does not need to expose unrelated infrastructure information.
+
+It needs to be sufficient to understand the scope of the result.
+
+---
+
+## 6. Baseline Gate
+
+Failure testing should begin only after a valid baseline exists.
+
+The baseline should demonstrate:
+
+- runtime initialization;
+- session creation;
+- expected lifecycle progression;
+- transport availability;
+- required observability;
+- evidence generation.
+
+Minimum expected result:
 
     BASELINE=PASS
 
-A failed baseline should be investigated before migration or recovery conclusions are drawn.
+If the baseline cannot be established, continuity testing should not be interpreted as meaningful.
 
 ---
 
-# 6. Session Establishment Criterion
+## 7. Session Establishment Gate
 
-The pilot should demonstrate that a canonical session can be created and progressed through the expected establishment lifecycle.
+The runtime must establish the logical session required by the scenario.
 
-The evaluator should confirm that the session reaches an accepted operational state.
+The evaluator should be able to identify:
 
-A representative result is:
+    SESSION_ID
 
-    SESSION_ESTABLISHED
+    CURRENT STATE
+
+and, where exposed by the validation surface:
+
+    LIFETIME IDENTITY
+
+Expected result:
+
+    SESSION_ESTABLISHMENT=PASS
+
+---
+
+## 8. Session / Transport Separation Gate
+
+The pilot should directly exercise the architectural invariant:
+
+> **Session ≠ Transport**
+
+A representative scenario is:
+
+    SESSION=S
+    TRANSPORT=A
 
 followed by:
 
-    SESSION_ACTIVE
+    TRANSPORT=A -> unavailable
 
-The exact application integration may expose different external terminology, but the continuity object must be identifiable.
+and:
 
----
+    TRANSPORT=B -> active
 
-# 7. Session Identity Criterion
+with:
 
-The pilot must identify what represents the logical session.
+    SESSION=S
 
-The evaluator should verify that this identity remains stable across the transport changes included in the pilot.
+Expected result:
 
-Acceptance objective:
+    SESSION_IDENTITY_PRESERVED=YES
 
-    SESSION BEFORE TRANSPORT CHANGE
-                ==
-    SESSION AFTER TRANSPORT CHANGE
-
-while:
-
-    TRANSPORT BEFORE
-                !=
-    TRANSPORT AFTER
-
-where the scenario intentionally replaces transport.
+The pilot should not infer this property merely because application traffic eventually resumed.
 
 ---
 
-# 8. Transport Interruption Criterion
+## 9. Physical Transport Failure Gate
 
-The pilot should include a real or controlled transport interruption.
+Where operationally safe, at least one scenario should include a real transport interruption.
 
 Examples may include:
 
 - disabling an active interface;
-- removing network reachability;
-- interrupting the current transport;
-- making the current path unavailable.
+- removing connectivity;
+- switching networks;
+- interrupting the active path.
 
-The evaluator should observe the failure rather than infer it only from a final success result.
-
-A representative observation is:
+The evaluator should observe an actual condition equivalent to:
 
     TRANSPORT_REACHABILITY=LOST
 
+This distinguishes physical failure testing from purely internal state simulation.
+
 ---
 
-# 9. Transport Recovery Criterion
+## 10. Transport Recovery Gate
 
-After transport interruption, the pilot should restore or provide viable connectivity.
+After interruption, connectivity should be restored or replacement connectivity should become available.
 
-A representative observation is:
+The evaluator should observe a condition equivalent to:
 
     TRANSPORT_REACHABILITY=RECOVERED
 
-The evaluator should then determine whether the session continuity model behaved according to the pilot requirements.
+The pilot must then evaluate whether the logical session behaved according to the defined continuity requirement.
+
+Expected result:
+
+    TRANSPORT_RECOVERY=PASS
 
 ---
 
-# 10. Physical Outage Interpretation
+## 11. Transport Replacement Gate
 
-A transport outage is allowed to be a real outage.
+The pilot should verify that supported transport replacement does not unnecessarily redefine logical session identity.
 
-VRP does not define pilot success as pretending the physical interruption never happened.
+Expected relationship:
 
-Therefore:
+    SESSION_BEFORE == SESSION_AFTER
 
-    physical transport unavailable
-        !=
-    packets magically delivered
+while:
 
-The relevant question is whether the session continuity model survives the interruption and can continue correctly after viable transport becomes available.
+    TRANSPORT_BEFORE != TRANSPORT_AFTER
 
----
+where transport replacement is the scenario being evaluated.
 
-# 11. Transport Replacement Criterion
+Expected result:
 
-At least one pilot scenario should replace the transport carrying an active session.
-
-The evaluator should observe:
-
-    SESSION S
-       |
-       +---- TRANSPORT A
-       |
-       X
-    TRANSPORT A unavailable
-       |
-       v
-    TRANSPORT B
-       |
-       v
-    SESSION S
-
-Acceptance objective:
-
-    SESSION_IDENTITY_PRESERVED=YES
+    TRANSPORT_REPLACEMENT=PASS
 
 ---
 
-# 12. Migration Criterion
+## 12. Migration Gate
 
-A successful pilot should include migration rather than only transport restoration.
+At least one supported migration should be exercised.
 
-The evaluator should confirm that:
+The evaluator should verify:
 
-- migration begins from an identifiable state;
-- replacement transport or path is available;
-- migration is accepted through the runtime lifecycle;
-- the final session state is valid;
-- session identity remains coherent.
+- migration was requested or triggered;
+- a viable replacement path/transport existed;
+- canonical lifecycle progression remained valid;
+- migration completed;
+- logical session identity remained coherent.
 
-Expected outcome:
+Expected result:
 
-    MIGRATION_COMPLETED=YES
+    MIGRATION=PASS
+
+---
+
+## 13. Repeated Migration Gate
+
+If repeated migration is relevant to the deployment, it should be tested as a separate workload.
+
+Project-level engineering validation has previously exercised:
+
+    1000 migrations
+
+with session identity preserved.
+
+A pilot does not need to reproduce that exact number.
+
+It should select a migration count appropriate to the expected deployment behavior.
+
+The acceptance property is correctness across repeated migration, not achievement of a marketing number.
+
+---
+
+## 14. Network Transition Gate
+
+The pilot should exercise network transitions that actually matter to the deployment.
+
+Examples include:
+
+    Wi-Fi -> Mobile
+
+    Network A -> Network B
+
+    Path A -> Path B
+
+    Relay A -> Relay B
+
+Testing irrelevant transition types provides less value than exercising the environment's real failure modes.
+
+---
+
+## 15. Session Lifetime Gate
+
+If a logical session can be recreated or reincarnated, the pilot should verify that historical and current lifetimes remain distinguishable.
+
+The required property is:
+
+    SAME LOGICAL SESSION ID
+            !=
+    SAME CURRENT LIFETIME
+
+where recreation has occurred.
+
+The evaluator should be able to distinguish historical work from work belonging to the current lifecycle.
+
+---
+
+## 16. Stale-Lifetime Gate
+
+A pilot should deliver work associated with an older lifetime after a newer lifetime has become current.
+
+Expected result:
+
+    STALE_LIFETIME_OPERATION=REJECTED
 
 and:
 
-    SESSION_IDENTITY_PRESERVED=YES
+    CURRENT_LIFETIME_PRESERVED=YES
+
+Project-level validation has exercised 128 sequential incarnations with 127 historical delayed operations rejected and zero accepted.
+
+The pilot may use a smaller environment-appropriate scenario while testing the same invariant.
 
 ---
 
-# 13. Repeated Migration Criterion
+## 17. Replay Gate
 
-A single successful migration provides limited evidence.
-
-Where the pilot environment permits it, migration should be repeated.
-
-VRP engineering validation has previously exercised:
-
-    1,000 migrations
-
-while preserving session identity in the recorded scenario.
-
-A pilot does not necessarily need to reproduce exactly that count.
-
-The evaluator should choose a repetition count appropriate to the deployment environment and risk profile.
-
----
-
-# 14. Path Change Criterion
-
-If the integration includes multiple viable paths, the pilot should exercise path replacement.
-
-The evaluator should verify that:
-
-- path identity can change;
-- the session remains the same logical continuity object;
-- the resulting path becomes current through an accepted transition.
-
-Acceptance objective:
-
-    PATH_CHANGED=YES
-    SESSION_IDENTITY_PRESERVED=YES
-
----
-
-# 15. Rebinding Criterion
-
-Where applicable, the pilot should include network rebinding behavior.
-
-The objective is not to test a particular NAT vendor.
-
-The objective is to determine whether externally visible transport/path changes can occur without forcing unnecessary logical session replacement.
-
-Acceptance should be based on observed session continuity.
-
----
-
-# 16. Replay Criterion
-
-The pilot should include replay validation.
-
-Previously observed work should be presented again through the supported validation surface.
+Previously observed work should be delivered again through the supported validation path.
 
 Expected result:
 
     REPLAY_ACCEPTED=0
 
-and:
+The pilot should verify that replay does not become a new canonical operation.
 
-    REPLAY_REJECTED>0
+Project-level validation has included a recorded 9,999-attempt replay scenario with zero accepted replays.
 
-The current session should remain coherent.
-
----
-
-# 17. Replay Volume
-
-The required replay volume depends on the pilot.
-
-VRP engineering validation has previously exercised high-volume replay scenarios, including a recorded validation with:
-
-    REPLAY_ATTEMPTS=9999
-
-    REPLAY_REJECTED=9999
-
-A pilot evaluator may select a different volume appropriate to the environment.
-
-The acceptance property remains:
-
-> Replayed work must not silently become new canonical work.
+The pilot does not need to reproduce the exact attempt count unless volume itself is part of the evaluation.
 
 ---
 
-# 18. Duplicate Delivery Criterion
+## 18. Duplicate Delivery Gate
 
-The pilot should verify that duplicate delivery does not cause duplicate canonical acceptance.
+Duplicate delivery should not create duplicate canonical execution.
 
 Expected relationship:
 
-    ONE VALID OPERATION
-           +
-    DUPLICATE DELIVERY
-           =
-    ONE CANONICAL ACCEPTANCE
+    ORIGINAL OPERATION -> ACCEPTED ONCE
 
-The exact evidence representation depends on the scenario.
+    DUPLICATE          -> NOT ACCEPTED AS NEW WORK
+
+The evaluator should inspect canonical state/history rather than relying only on transport-level delivery counters.
 
 ---
 
-# 19. Session Recreation Criterion
+## 19. Invalid Transition Gate
 
-Where lifecycle testing is included, the pilot should recreate the same logical session identifier across distinct lifetimes.
-
-The evaluator should verify that historical work remains distinguishable from current work.
-
-The expected property is:
-
-    SAME LOGICAL SESSION ID
-
-does not imply:
-
-    SAME CURRENT LIFETIME AUTHORITY
-
----
-
-# 20. Stale Lifetime Criterion
-
-The pilot should present work belonging to an earlier session lifetime after a newer lifetime has become current.
-
-Expected result:
-
-    HISTORICAL_WORK=REJECTED
-
-The current lifecycle should remain unchanged.
-
----
-
-# 21. Multi-Lifetime Criterion
-
-For stronger lifecycle validation, the pilot may exercise multiple successive incarnations.
-
-VRP engineering validation has previously exercised:
-
-    TOTAL_INCARNATIONS=128
-
-    HISTORICAL_OPERATIONS=127
-
-    HISTORICAL_ACCEPTED=0
-
-    HISTORICAL_REJECTED=127
-
-The pilot does not need to reproduce exactly this scale unless required by its acceptance plan.
-
-The essential property is historical isolation.
-
----
-
-# 22. Invalid Transition Criterion
-
-The pilot should verify that an event invalid for the current canonical state is rejected.
+The pilot should attempt at least one operation that is invalid for the current canonical state.
 
 Expected result:
 
@@ -429,650 +374,914 @@ Expected result:
 
 with:
 
-    CANONICAL_STATE_MUTATION=NONE
+    STATE_DELTA=0
 
-    CANONICAL_HISTORY_MUTATION=NONE
+    ACCEPTED_HISTORY_DELTA=0
+
+    CANONICAL_EVENT_DELTA=0
+
+This verifies more than simple error reporting.
+
+It verifies that rejected work remains outside canonical state.
 
 ---
 
-# 23. Terminal State Criterion
+## 20. Canonical Acceptance Gate
 
-Where lifecycle termination is relevant, the pilot should verify that terminal session states cannot be casually resurrected by ordinary stale or invalid work.
+The pilot should also verify the positive side of the boundary.
 
-Relevant terminal states may include:
+For a valid accepted operation:
+
+    STATE_DELTA=EXPECTED
+
+    ACCEPTED_HISTORY_DELTA=1
+
+    CANONICAL_EVENT_DELTA=1
+
+The objective is to establish both sides of the contract:
+
+    ACCEPTED -> RECORDED ONCE
+
+    REJECTED -> NOT RECORDED AS ACCEPTED
+
+---
+
+## 21. Terminal-State Gate
+
+Where terminal states are exercised, unsupported ordinary events must not silently resurrect the session.
+
+Relevant states include:
 
     SESSION_CLOSED
-
-and:
 
     SESSION_FAILED
 
 Expected result:
 
-    INVALID_RESURRECTION=REJECTED
+    UNSUPPORTED_RESURRECTION=REJECTED
+
+with no canonical state/history mutation.
+
+Explicit supported recovery should be tested separately.
 
 ---
 
-# 24. Fail-Closed Admission Criterion
+## 22. Duplicate-Create Gate
 
-The pilot should confirm that incomplete lifecycle context is not automatically interpreted as current authority.
+Attempting to create an already-existing session must not silently create competing canonical session state.
+
+Expected result:
+
+    DUPLICATE_CREATE
+          |
+          X
+    NO SECOND CANONICAL SESSION
+
+This is particularly relevant around restart, retry, and recovery behavior.
+
+---
+
+## 23. Fail-Closed Admission Gate
+
+The pilot should verify that invalid context does not default to acceptance.
+
+Representative cases include:
+
+    missing lifecycle context
+
+    stale lifecycle context
+
+    replay
+
+    invalid state
+
+    unauthorized authority
+
+Expected behavior:
+
+    INVALID / UNKNOWN -> REJECTED
+
+A recovery condition should not weaken this rule.
+
+---
+
+## 24. Authority Gate
+
+Where authority management is part of the pilot, the evaluator should test both negative and positive cases.
+
+At minimum:
+
+    UNAUTHORIZED TRANSITION -> REJECTED
+
+    AUTHORIZED TRANSITION   -> ACCEPTED
+
+Reachability must not be treated as proof of authority.
+
+Expected result:
+
+    AUTHORITY_VALIDATION=PASS
+
+---
+
+## 25. Authority Progression Gate
+
+Where authority generations are used, valid progression should remain ordered.
 
 Representative behavior:
 
-    missing lifecycle identity
-        -> REJECTED
+    GENERATION=1
+        |
+        v
+    VALID TRANSITION
+        |
+        v
+    GENERATION=2
 
-    stale lifecycle identity
-        -> REJECTED
-
-    current valid lifecycle identity
-        -> eligible for normal validation
-
-Acceptance objective:
-
-    CANONICAL_ADMISSION=FAIL_CLOSED
+The evaluator should verify that the previous generation does not remain equivalent to the new current authority.
 
 ---
 
-# 25. Authority Criterion
+## 26. Authority Rollback Gate
 
-Where authority management is part of the pilot integration, both valid and invalid authority transitions should be exercised.
-
-The evaluator should verify that connectivity alone does not create authority.
-
-The test should include:
-
-- current valid authority;
-- an unauthorized transition attempt;
-- a valid authorized transition.
-
----
-
-# 26. Unauthorized Authority Criterion
-
-An operation originating outside the accepted current authority should not automatically become canonical.
-
-Expected result:
-
-    UNAUTHORIZED_AUTHORITY_TRANSITION=REJECTED
-
-The rejection should not corrupt the current session lifecycle.
-
----
-
-# 27. Authorized Authority Criterion
-
-A valid authority transition should be capable of progressing through the accepted runtime path.
-
-Expected result:
-
-    AUTHORIZED_AUTHORITY_TRANSITION=ACCEPTED
-
-where the scenario otherwise satisfies the runtime contract.
-
----
-
-# 28. Authority Generation Criterion
-
-Where generation-based authority progression is exposed by the pilot, the evaluator should confirm monotonic progression.
-
-A representative result is:
-
-    INITIAL_GENERATION=1
-
-    FINAL_GENERATION=2
-
-The evaluator should also attempt stale authority reuse where supported.
+A stale authority generation should be presented after a newer generation has become current.
 
 Expected result:
 
     STALE_AUTHORITY=REJECTED
 
----
-
-# 29. Authority Rollback Criterion
-
-The pilot should verify that historical authority cannot silently replace newer accepted authority.
-
-Expected result:
+and:
 
     AUTHORITY_ROLLBACK=REJECTED
 
-This is particularly relevant around restart and recovery scenarios.
+This gate is especially relevant for failover and restart scenarios.
 
 ---
 
-# 30. Recovery Criterion
+## 27. Recovery Gate
 
-After an accepted disruption and migration sequence, the session should reach the expected canonical recovery state.
+The pilot should exercise at least one recovery scenario relevant to the target environment.
 
-A representative flow is:
+A representative sequence is:
 
-    SESSION_ACTIVE
-          |
-          v
+    SESSION ACTIVE
+         |
+         v
     TRANSPORT FAILURE
-          |
-          v
-    MIGRATION
-          |
-          v
-    SESSION_RECOVERED
-          |
-          v
-    SESSION_ACTIVE
-
-Acceptance objective:
-
-    RECOVERY_COMPLETED=YES
-
----
-
-# 31. Canonical Event Criterion
-
-The pilot should verify consistency between accepted operations and canonical evidence.
-
-For an accepted event:
-
-    STATE_DELTA=EXPECTED
-    HISTORY_DELTA=1
-    CANONICAL_EVENT_DELTA=1
-
-For a rejected event:
-
-    STATE_DELTA=0
-    HISTORY_DELTA=0
-    CANONICAL_EVENT_DELTA=0
-
-This protects the relationship between runtime state and the evidence describing that state.
-
----
-
-# 32. Canonical Read Isolation Criterion
-
-Where public integration APIs expose runtime state, the evaluator should verify that read operations do not unintentionally become canonical write operations.
-
-The specific surfaces depend on the integration.
-
-The public acceptance principle is:
-
-> A read representation should not silently provide unintended authority to rewrite canonical state.
-
----
-
-# 33. Concurrency Criterion
-
-A pilot intended for concurrent workloads should include overlapping runtime activity.
-
-Depending on the deployment, this may include:
-
-- multiple sessions;
-- overlapping migrations;
-- concurrent path observations;
-- concurrent packet activity;
-- delayed work arriving during current work.
-
-The evaluator should define a workload appropriate to the expected deployment scale.
-
----
-
-# 34. Race Qualification
-
-Where the pilot includes build-level engineering qualification, relevant regression scenarios should be exercised under race detection or equivalent concurrency diagnostics where supported.
-
-Race diagnostics are an additional engineering control.
-
-They are not a substitute for runtime invariant validation.
-
----
-
-# 35. Network Pressure Criterion
-
-The pilot should include degraded network conditions where practical.
-
-Candidate conditions include:
-
-- increased latency;
-- jitter;
-- packet reordering;
-- congestion;
-- temporary reachability loss.
-
-The evaluator should determine whether the required continuity properties remain preserved or failure remains safely contained.
-
----
-
-# 36. Latency Criterion
-
-The pilot should define the latency range relevant to its environment.
-
-The objective is to observe whether increased delay causes:
-
-- incorrect stale-work acceptance;
-- invalid migration;
-- incorrect recovery;
-- canonical divergence.
-
-The pilot should record the tested latency conditions.
-
----
-
-# 37. Jitter Criterion
-
-Where jitter is operationally relevant, the evaluator should introduce timing variation and observe continuity behavior.
-
-Temporary timing variation should not automatically redefine session identity.
-
----
-
-# 38. Reordering Criterion
-
-Where supported by the validation environment, reordered delivery should be exercised.
-
-The runtime should continue to distinguish:
-
-- current valid work;
-- stale work;
-- duplicate work;
-- invalid work.
-
----
-
-# 39. Resource Criterion
-
-The pilot should establish environment-specific resource expectations.
-
-Relevant measurements may include:
-
-- CPU usage;
-- memory usage;
-- session count;
-- transport count;
-- migration frequency;
-- evidence-generation overhead.
-
-No universal resource threshold is defined by this public document.
-
-The deployment organization should define acceptable limits for its environment.
-
----
-
-# 40. Long-Duration Criterion
-
-A meaningful pilot should include more than short demonstrations.
-
-The required duration depends on the deployment.
-
-Longer runs are useful for exposing:
-
-- resource growth;
-- timing-dependent failures;
-- delayed historical work;
-- repeated migration effects;
-- long-term evidence behavior.
-
-VRP engineering validation has included extended and week-scale harness execution.
-
----
-
-# 41. Application Continuity Criterion
-
-Where an application is included in the pilot, application behavior should be measured separately from VRP session behavior.
-
-The evaluator should record:
-
-    VRP SESSION RESULT
-
-and:
-
-    APPLICATION RESULT
-
-separately.
-
-This prevents an application-specific timeout from being incorrectly represented as a protocol identity failure, or vice versa.
-
----
-
-# 42. Evidence Criterion
-
-Each important pilot scenario should produce reviewable evidence.
-
-Depending on the validation surface, evidence may include:
-
-- scenario identity;
-- timestamp;
-- build identity;
-- environment;
-- observations;
-- counters;
-- summary;
-- manifest;
-- integrity information;
-- final verdict.
-
-The evaluator should preserve enough information to review the result later.
-
----
-
-# 43. Evidence Integrity Criterion
-
-Where integrity-bound evidence is generated, the pilot should verify that modification is detectable.
-
-The evaluator should not assume that a file is trustworthy merely because it was produced by a validation run.
-
-Expected property:
-
-    MODIFIED_EVIDENCE
-          |
-          v
-    VERIFICATION
-          |
-          X
-    INCONSISTENCY DETECTED
-
----
-
-# 44. Independent Verification Criterion
-
-Where a public verifier is available for the pilot scenario, evidence should be evaluated separately from the original runtime execution.
+         |
+         v
+    REPLACEMENT / RESTORATION
+         |
+         v
+    MIGRATION / RECOVERY
+         |
+         v
+    SESSION ACTIVE
 
 Expected result:
 
-    EVIDENCE_GENERATED=YES
+    RECOVERY=PASS
 
-    INDEPENDENT_VERIFICATION=PASS
-
-The scope of this result is the exposed evidence contract.
-
-It is not a claim of complete formal verification of the protected runtime.
+The actual sequence may differ by deployment.
 
 ---
 
-# 45. Failure Reporting Criterion
+## 28. Recovery Integrity Gate
 
-A pilot must be allowed to fail.
+Recovery must not bypass normal canonical rules.
 
-If a scenario violates its expected invariant, the result should be preserved and investigated.
+During recovery:
 
-A pilot process should not transform:
+    replay remains replay
 
-    FAIL
+    stale work remains stale
 
-into:
+    invalid transitions remain invalid
 
-    PASS
+    unauthorized authority remains unauthorized
 
-by removing inconvenient observations.
+Expected result:
 
-Unexpected behavior is engineering evidence.
+    RECOVERY_ADMISSION=FAIL_CLOSED
 
----
-
-# 46. Reproduction Criterion
-
-Important failures should be reproduced where practical.
-
-A useful failure record should identify:
-
-- scenario;
-- build;
-- environment;
-- relevant observations;
-- expected result;
-- actual result.
-
-A reproducible failure is significantly more useful than an unexplained screenshot or isolated statement.
+This is more important than merely observing that traffic eventually resumed.
 
 ---
 
-# 47. Pilot Acceptance Matrix
+## 29. Canonical-State Consistency Gate
 
-A pilot may use the following matrix as a starting point:
+After failure and recovery, the evaluator should compare:
 
-    Baseline runtime                         REQUIRED
+- final canonical state;
+- accepted transition history;
+- canonical event history.
 
-    Session establishment                    REQUIRED
+They should describe one coherent accepted execution.
 
-    Session identity observation             REQUIRED
+A result such as:
 
-    Transport interruption                   REQUIRED
+    STATE=A
+    ACCEPTED_HISTORY implies B
 
-    Transport recovery                       REQUIRED
+requires investigation.
 
-    Transport replacement                    REQUIRED
+Expected result:
 
-    Migration                                REQUIRED
-
-    Replay rejection                         REQUIRED
-
-    Stale-lifetime rejection                 REQUIRED
-
-    Invalid transition rejection             REQUIRED
-
-    Canonical history consistency            REQUIRED
-
-    Evidence capture                         REQUIRED
-
-    Evidence verification                    REQUIRED
-
-    Authority validation                     WHEN IN SCOPE
-
-    Repeated migration                       RECOMMENDED
-
-    Network pressure                         RECOMMENDED
-
-    Concurrency qualification                RECOMMENDED
-
-    Long-duration execution                  RECOMMENDED
-
-    Application continuity                   WHEN IN SCOPE
-
-    Performance qualification                ENVIRONMENT SPECIFIC
-
-    Scale qualification                      ENVIRONMENT SPECIFIC
+    CANONICAL_STATE_CONSISTENCY=PASS
 
 ---
 
-# 48. Minimum Acceptance Gate
+## 30. Read-Isolation Gate
 
-A controlled pilot should not receive an overall successful engineering result if any mandatory scenario demonstrates unresolved violation of a core invariant.
+Where the pilot exposes runtime read APIs to integration code, the evaluator should verify the documented ownership semantics.
 
-The minimum acceptance gate is:
+Read-oriented data should not unexpectedly provide a direct mutation path into canonical runtime state.
 
-    BASELINE=PASS
+Project-level regression coverage already exists for reviewed surfaces including:
 
-    SESSION_ESTABLISHMENT=PASS
+- managed-session reads;
+- canonical EventLog reads;
+- supported event metadata;
+- path-health reads;
+- relay-list reads.
 
-    SESSION_IDENTITY=PASS
+A pilot should test the surfaces it actually integrates.
 
-    TRANSPORT_INTERRUPTION_OBSERVED=YES
+---
 
-    TRANSPORT_RECOVERY=PASS
+## 31. Concurrency Gate
 
-    MIGRATION=PASS
+If concurrent operation is part of the expected deployment, the pilot should include concurrent workloads.
 
-    REPLAY_REJECTION=PASS
+Relevant scenarios may include:
 
-    STALE_LIFETIME_REJECTION=PASS
+- multiple sessions;
+- overlapping transport events;
+- delayed historical work;
+- simultaneous path observations;
+- recovery while other sessions remain active.
 
-    INVALID_TRANSITION_REJECTION=PASS
+The acceptance property is preservation of the relevant invariant under the tested concurrent workload.
 
-    CANONICAL_HISTORY_CONSISTENCY=PASS
+---
+
+## 32. Race Qualification
+
+Where supported by the engineering environment, relevant test families should be exercised under race detection or equivalent concurrency diagnostics.
+
+A race-detector PASS is useful evidence.
+
+It is not a substitute for invariant testing.
+
+The pilot should preserve both distinctions.
+
+---
+
+## 33. Jitter Gate
+
+If the target environment experiences timing variability, the pilot should inject or reproduce jitter.
+
+Expected result:
+
+    REQUIRED_CANONICAL_INVARIANTS=PRESERVED
+
+A jitter scenario may degrade latency without constituting a canonical-state failure.
+
+---
+
+## 34. Latency Gate
+
+The pilot should test latency conditions representative of the deployment.
+
+Late work must not automatically become current work.
+
+The evaluator should separately measure:
+
+    CONTINUITY RESULT
+
+and:
+
+    LATENCY RESULT
+
+Correctness and performance should not be collapsed into one verdict.
+
+---
+
+## 35. Reordering Gate
+
+Where event or packet reordering is realistic, the pilot should exercise it.
+
+Reordered work remains subject to:
+
+- lifecycle validation;
+- replay validation;
+- state validation;
+- authority validation where applicable.
+
+Expected result:
+
+    REORDERING_DOES_NOT_BYPASS_ADMISSION=PASS
+
+---
+
+## 36. Congestion Gate
+
+Congestion testing should evaluate whether increased pressure causes invariant failure.
+
+A valid result may include degraded performance while canonical correctness remains preserved.
+
+The pilot should therefore report:
+
+    PERFORMANCE
+
+and:
+
+    CORRECTNESS
+
+separately.
+
+---
+
+## 37. Resource Gate
+
+The target environment should define resource limits appropriate to the pilot.
+
+Relevant measurements may include:
+
+    CPU
+
+    MEMORY
+
+    SESSION COUNT
+
+    TRANSPORT COUNT
+
+    EVIDENCE VOLUME
+
+    MIGRATION RATE
+
+Project-level correctness evidence should not be interpreted as proof of arbitrary production capacity.
+
+---
+
+## 38. Long-Duration Gate
+
+A pilot intended to inform production deployment should include extended execution.
+
+The duration should reflect the intended operational use.
+
+Long-duration testing can expose:
+
+- accumulated state;
+- delayed work;
+- resource growth;
+- repeated recovery defects;
+- long-lived concurrency problems.
+
+Project-level validation includes prolonged turbulence and week-scale harness execution, but target-environment qualification remains necessary.
+
+---
+
+## 39. Application Gate
+
+Application behavior must be evaluated independently from VRP session continuity.
+
+The pilot should be capable of reporting results such as:
+
+    VRP_SESSION_CONTINUITY=PASS
+
+    APPLICATION_CONTINUITY=FAIL
+
+or:
+
+    VRP_SESSION_CONTINUITY=PASS
+
+    APPLICATION_CONTINUITY=PASS
+
+This avoids representing application reconnect as proof of VRP continuity or application timeout as automatic proof of VRP failure.
+
+---
+
+## 40. Evidence Capture Gate
+
+Important pilot scenarios should produce reviewable evidence.
+
+Depending on the scenario, evidence may include:
+
+    UTC
+
+    BUILD IDENTITY
+
+    ENVIRONMENT
+
+    SCENARIO
+
+    OBSERVATIONS
+
+    COUNTERS
+
+    CANONICAL SUMMARY
+
+    MANIFEST
+
+    INTEGRITY INFORMATION
+
+    VERDICT
+
+Expected result:
 
     EVIDENCE_CAPTURE=PASS
 
-    EVIDENCE_VERIFICATION=PASS
+---
 
-An environment may define additional mandatory requirements.
+## 41. Evidence Integrity Gate
+
+Where evidence is integrity-bound, the pilot should verify that modification is detectable.
+
+A simple acceptance relationship is:
+
+    ORIGINAL EVIDENCE -> VERIFIABLE
+
+    MODIFIED EVIDENCE -> VERIFICATION FAILURE
+
+The exact verification mechanism depends on the exposed evidence contract.
 
 ---
 
-# 49. Conditional Acceptance
+## 42. Semantic Verification Gate
 
-A deployment organization may encounter issues unrelated to a core VRP invariant.
+Verification should evaluate scenario meaning, not only file hashes.
+
+For example, a replay scenario should fail if:
+
+    REPLAY_ACCEPTED > 0
+
+even if every file hash is internally consistent.
+
+Likewise, a migration scenario should fail its continuity property if:
+
+    SESSION_BEFORE != SESSION_AFTER
+
+where session preservation is the requirement.
+
+---
+
+## 43. Independent Verification Gate
+
+Where the public verification surface supports the scenario, evidence should be evaluated separately from the runtime execution that generated it.
+
+Expected result:
+
+    INDEPENDENT_VERIFICATION=PASS
+
+This means verification of the exposed evidence contract.
+
+It does not imply complete independent source review or formal proof of the protected runtime.
+
+---
+
+## 44. Verification Failure
+
+If:
+
+    RUNTIME_VERDICT=PASS
+
+but:
+
+    INDEPENDENT_VERIFICATION=FAIL
+
+the pilot must not report the independently verified result as PASS.
+
+The discrepancy should be investigated.
+
+The runtime's own verdict does not override contradictory verification evidence.
+
+---
+
+## 45. Reproduction Gate
+
+Important failures should be reproduced where practical.
+
+The engineering sequence should be:
+
+    OBSERVE
+
+    PRESERVE EVIDENCE
+
+    REPRODUCE
+
+    ISOLATE
+
+    CORRECT
+
+    REGRESSION TEST
+
+    REQUALIFY
+
+A pilot is valuable even when it discovers a defect.
+
+The important question is whether the defect becomes reproducible engineering information.
+
+---
+
+## 46. Pilot Acceptance Matrix
+
+A minimal controlled pilot may use the following matrix:
+
+| Property | Requirement |
+|---|---|
+| Build identified | Required |
+| Environment documented | Required |
+| Baseline | Pass |
+| Session establishment | Pass |
+| Session / transport separation | Pass |
+| Physical or controlled interruption | Pass |
+| Transport recovery | Pass |
+| Migration | Pass |
+| Replay rejection | Pass |
+| Stale-lifetime rejection | Pass |
+| Invalid-transition rejection | Pass |
+| Canonical acceptance consistency | Pass |
+| Recovery | Pass |
+| Evidence capture | Pass |
+| Evidence verification | Pass |
+| Authority validation | When in scope |
+| Authority rollback | When in scope |
+| Concurrency | When operationally relevant |
+| Runtime pressure | Recommended |
+| Long-duration execution | Required before production acceptance |
+| Application qualification | When in scope |
+| Performance qualification | Environment-specific |
+| Scale qualification | Environment-specific |
+
+---
+
+## 47. Mandatory Core Gate
+
+For a pilot intended to evaluate the core VRP continuity model, the minimum required properties are:
+
+    SESSION IDENTITY PRESERVED
+                AND
+    STALE LIFETIME WORK REJECTED
+                AND
+    REPLAY REJECTED
+                AND
+    INVALID CANONICAL TRANSITIONS REJECTED
+                AND
+    RECOVERY COMPLETED
+                AND
+    EVIDENCE CONSISTENT
+
+If authority management is part of the evaluated integration, add:
+
+    UNAUTHORIZED AUTHORITY REJECTED
+                AND
+    STALE AUTHORITY REJECTED
+
+---
+
+## 48. Acceptance Verdict: ACCEPTED
+
+A pilot may be classified:
+
+    ACCEPTED
+
+when the required invariants and environment-specific acceptance conditions pass for the defined scope.
+
+The verdict must identify that scope.
+
+For example:
+
+> Accepted for the evaluated build, topology, transports, workload, and failure scenarios.
+
+It should not imply certification of unrelated environments.
+
+---
+
+## 49. Acceptance Verdict: CONDITIONALLY ACCEPTED
+
+A pilot may be classified:
+
+    CONDITIONALLY ACCEPTED
+
+when core evaluated invariants pass but unresolved environment-specific work remains.
+
+Examples may include:
+
+- performance tuning;
+- monitoring integration;
+- capacity qualification;
+- application timeout configuration;
+- operational automation.
+
+Conditions should be written explicitly.
+
+---
+
+## 50. Acceptance Verdict: NOT ACCEPTED
+
+A pilot should be classified:
+
+    NOT ACCEPTED
+
+for the affected scope when a mandatory invariant fails and remains unresolved.
 
 Examples include:
 
-- application timeout tuning;
-- monitoring integration;
-- infrastructure configuration;
-- environment-specific performance limits.
+    STALE WORK ACCEPTED AS CURRENT
 
-The organization may classify such results separately from protocol-invariant failures.
+    REPLAY ACCEPTED AS NEW CANONICAL WORK
 
-Any conditional acceptance criteria should be documented explicitly by the evaluator.
+    INVALID EVENT ENTERED CANONICAL HISTORY
 
----
+    UNAUTHORIZED AUTHORITY ACCEPTED
 
-# 50. Pilot Failure Conditions
+    AUTHORITY ROLLBACK ACCEPTED
 
-Examples of results requiring investigation include:
+    SESSION IDENTITY UNEXPECTEDLY REPLACED
 
-    stale historical work accepted as current
+    REQUIRED RECOVERY FAILED
 
-    replay accepted as new canonical work
+    EVIDENCE VERIFICATION FAILED
 
-    unauthorized authority transition accepted
-
-    rejected event entering canonical history
-
-    session identity unexpectedly replaced during supported migration
-
-    evidence verification inconsistent with claimed result
-
-    unreconciled canonical state divergence
-
-These conditions should not be hidden behind an overall PASS label.
+A negative verdict is preferable to hiding an unresolved invariant violation.
 
 ---
 
-# 51. Pilot Report
+## 51. Pilot Report
 
-At completion, the evaluator should produce a concise report containing:
+The final pilot report should contain enough information for another engineer to understand what was actually evaluated.
 
-- evaluated environment;
-- evaluated build;
-- scenarios executed;
-- results;
-- unresolved failures;
-- performance observations;
-- evidence references;
-- deployment-specific conclusions.
+Recommended structure:
 
-The report should distinguish:
+    1. Build identity
 
-    OBSERVED FACT
+    2. Environment
 
-from:
+    3. Integration scope
 
-    DEPLOYMENT INTERPRETATION
+    4. Required invariants
 
----
+    5. Scenarios executed
 
-# 52. Pilot Success Does Not Mean Universal Certification
+    6. Observed results
 
-A successful pilot establishes evidence for the environment and scenarios actually tested.
+    7. Evidence references
 
-It does not automatically establish correctness for:
+    8. Verification results
 
-- another operating system;
-- another transport;
-- another application;
-- another topology;
-- another scale;
-- another failure model.
+    9. Failures / limitations
 
-The pilot result should therefore remain bound to its evaluation scope.
+    10. Final verdict
+
+The report should separate facts from interpretation.
 
 ---
 
-# 53. Production Decision
+## 52. Performance Is a Separate Decision
 
-The production decision belongs to the deploying organization.
+A pilot may pass correctness requirements and still fail performance requirements.
 
-VRP can provide:
+For example:
 
-- runtime behavior;
-- validation scenarios;
-- evidence;
-- verification surfaces;
-- engineering documentation.
+    CONTINUITY=PASS
 
-The deploying organization determines whether those results satisfy its:
+    LATENCY_REQUIREMENT=FAIL
 
-- operational requirements;
-- security requirements;
-- performance requirements;
-- reliability requirements;
-- compliance requirements.
+This is a meaningful result.
 
----
+The opposite can also occur:
 
-# 54. Recommended Final Pilot Verdicts
+    PERFORMANCE=GOOD
 
-A pilot report should use explicit verdicts rather than vague language.
+    CANONICAL_INVARIANT=FAIL
 
-Recommended categories are:
-
-    PASS
-
-The required evaluated invariants were preserved under the tested pilot scope.
-
-    CONDITIONAL
-
-Core evaluated invariants were preserved, but environment-specific integration or operational issues remain.
-
-    FAIL
-
-One or more required invariants were violated or required validation could not be completed.
-
-These verdicts should always be accompanied by the actual evidence and scope.
+Good performance must not compensate for canonical correctness failure.
 
 ---
 
-# 55. Current VRP Pilot Position
+## 53. Scale Is a Separate Decision
 
-Existing VRP engineering validation provides evidence across:
+A successful small pilot does not establish arbitrary production scale.
+
+The target organization should define required values for:
+
+    concurrent sessions
+
+    traffic volume
+
+    transport count
+
+    migration rate
+
+    runtime duration
+
+    evidence volume
+
+Scale acceptance should be based on measured target-environment behavior.
+
+---
+
+## 54. Security Review Is a Separate Decision
+
+The pilot criteria in this document exercise important security-related invariants such as:
+
+- replay rejection;
+- lifecycle isolation;
+- authority rejection;
+- fail-closed admission;
+- evidence integrity.
+
+They do not replace a broader security review.
+
+A deployment may separately require:
+
+- source review;
+- cryptographic review;
+- host hardening;
+- credential management review;
+- threat modeling;
+- penetration testing;
+- compliance assessment.
+
+Those activities evaluate different boundaries.
+
+---
+
+## 55. Formal Verification Is Not a Pilot Requirement
+
+The current VRP validation model is engineering-based.
+
+It includes:
+
+- regression testing;
+- adversarial scenarios;
+- failure injection;
+- race detection;
+- repeated execution;
+- real transport interruption;
+- long-duration testing;
+- evidence verification.
+
+The project does not represent the controlled pilot as complete formal verification of the runtime.
+
+A formal-methods program, if used, would be a separate engineering activity.
+
+---
+
+## 56. Relationship to QUIC, MPTCP, VPN Roaming, and Application Failover
+
+The pilot should not attempt to prove that transport migration itself is unique to VRP.
+
+It is not.
+
+Existing systems already provide mechanisms including:
+
+    QUIC connection migration
+
+    Multipath TCP
+
+    VPN / tunnel endpoint roaming
+
+    application reconnect
+
+    application failover
+
+The useful VRP pilot question is narrower:
+
+> **Does the VRP continuity model preserve its session lifecycle, canonical state, authority, stale-work rejection, and evidence properties while the underlying transport changes?**
+
+This allows VRP to be evaluated on its actual architectural boundary rather than on an exaggerated novelty claim.
+
+---
+
+## 57. Comparison Should Be Property-Based
+
+If the pilot includes comparison with another technology, the comparison should ask:
+
+    What is the logical identity?
+
+    What happens when transport changes?
+
+    How is old work distinguished from current work?
+
+    How is replay handled?
+
+    Where is canonical state owned?
+
+    How is authority changed?
+
+    What happens during restart?
+
+    What evidence can be independently checked?
+
+This is more useful than declaring one technology a universal replacement for another.
+
+---
+
+## 58. No Universal Pilot Result
+
+A successful pilot means:
+
+> The required properties passed under the evaluated conditions.
+
+It does not mean:
+
+> Every future VRP deployment is automatically qualified.
+
+The result remains bounded by:
+
+- build;
+- environment;
+- topology;
+- workload;
+- failure scenarios;
+- duration;
+- scale.
+
+---
+
+## 59. Current Project-Level Evidence
+
+Before a target-environment pilot, the VRP engineering record already includes validation involving:
 
 - physical transport interruption;
-- transport recovery;
+- transport replacement;
 - repeated migration;
-- replay rejection;
-- stale-lifetime rejection;
+- stale lifetime rejection;
+- replay flooding;
+- invalid canonical transitions;
+- terminal-state protection;
 - authority progression;
 - authority rollback rejection;
-- canonical event isolation;
-- runtime recovery;
+- recovery;
 - concurrency;
-- long-duration execution;
-- evidence integrity;
-- independent verification.
+- prolonged network turbulence;
+- evidence modification;
+- historical rewrite detection;
+- independent evidence verification.
 
-This provides the engineering basis for controlled external pilot evaluation.
-
----
-
-# 56. Overall Pilot Acceptance Statement
-
-The appropriate public pilot position is:
-
-> **VRP is ready for controlled evaluation against explicit continuity, lifecycle, authority, recovery, and evidence criteria.**
-
-A successful pilot should demonstrate those properties in the evaluator's actual environment rather than relying solely on previously recorded project results.
-
-The strongest pilot is therefore not a demonstration where nothing fails.
-
-It is one where failures are deliberately introduced, the expected invariants remain observable, invalid work is rejected, recovery is measurable, and the resulting evidence can be independently reviewed.
+The pilot should build on this evidence rather than simply repeat every project-level scenario without regard to the target environment.
 
 ---
 
-## Public Scope
+## 60. Current Pilot Position
 
-This document defines externally relevant pilot acceptance criteria.
+The current engineering position is:
 
-It intentionally does not describe protected runtime implementation mechanisms.
+    CORE CONTINUITY MODEL          VALIDATED
+
+    LIFETIME ISOLATION             VALIDATED
+
+    REPLAY REJECTION               VALIDATED
+
+    CANONICAL ADMISSION            VALIDATED
+
+    AUTHORITY MODEL                VALIDATED
+
+    RECOVERY                       VALIDATED
+
+    EVIDENCE VERIFICATION          VALIDATED
+
+    CONTROLLED PILOT               READY FOR EVALUATION
+
+    TARGET ENVIRONMENT             MUST BE QUALIFIED
+
+    UNIVERSAL PRODUCTION STATUS    NOT CLAIMED
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Pilot Documentation — October 2026**
+## Conclusion
+
+A VRP pilot should not be designed to produce a predetermined success message.
+
+It should deliberately create the conditions most likely to challenge the continuity model:
+
+    transport failure
+
+    transport replacement
+
+    migration
+
+    replay
+
+    stale historical work
+
+    invalid state transitions
+
+    authority change
+
+    recovery
+
+and then determine whether the required invariants survive.
+
+The strongest appropriate pilot result is therefore not:
+
+> "VRP worked."
+
+It is:
+
+> **For the identified build and environment, the specified continuity, lifecycle, canonical-state, authority, recovery, and evidence properties passed the defined acceptance scenarios.**
+
+If they do not pass, the pilot has still produced useful engineering information.
+
+The purpose of the evaluation is to discover that before an unsupported assumption becomes a production dependency.
