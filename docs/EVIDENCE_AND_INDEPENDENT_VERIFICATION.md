@@ -1,486 +1,490 @@
 # VRP Evidence and Independent Verification
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Evidence and Verification Model  
-**Status:** Public  
-**Validation Scope:** Engineering evidence available as of October 2026
+**Status:** Public engineering verification model  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document describes the public evidence and verification model used by Veil Routing Protocol (VRP).
+This document defines what VRP means by engineering evidence and independent verification.
 
-Its purpose is to explain what an external evaluator can verify without requiring access to protected runtime implementation details.
+Its purpose is to avoid an ambiguous claim such as:
 
-VRP distinguishes between:
+> "The runtime printed PASS, therefore the property is proven."
 
-- implementation;
-- runtime observation;
-- evidence;
-- verification;
-- engineering claims.
+VRP treats runtime execution, evidence generation, evidence integrity, and evidence verification as separate concerns.
 
-A claim about continuity should be supported by evidence that can be inspected independently of the claim itself.
+The intended relationship is:
 
----
+    IMPLEMENTATION
+         |
+         v
+    SCENARIO EXECUTION
+         |
+         v
+    OBSERVATIONS
+         |
+         v
+    EVIDENCE
+         |
+         v
+    VERIFICATION
+         |
+         v
+    BOUNDED VERDICT
 
-# 1. Evidence Principle
-
-The public validation principle is:
-
-> **Do not rely on a PASS message when the underlying execution can provide stronger evidence.**
-
-A useful validation record should answer questions such as:
-
-- What was executed?
-- When was it executed?
-- Which build or revision was evaluated?
-- What environment produced the result?
-- What observable events occurred?
-- What invariant was evaluated?
-- What final verdict was produced?
-- Can the resulting evidence be checked for consistency?
-
-The evidence model exists to make engineering claims more reproducible and reviewable.
+A verification result is only as strong as the evidence and verification contract it actually evaluates.
 
 ---
 
-# 2. Evidence Is Not the Runtime
+## 2. Why Evidence Exists
 
-VRP separates runtime implementation from validation evidence.
+A test result is more useful when another engineer can answer:
 
-The runtime performs the operational work.
+- what was executed;
+- which build was executed;
+- where it was executed;
+- what was observed;
+- what invariant was expected;
+- what evidence supports the result;
+- whether the evidence is internally consistent;
+- what the resulting verdict actually means.
 
-The evidence surface records externally relevant observations about that work.
+Without that information, a line such as:
 
-The verifier evaluates the evidence.
+    PASS
+
+has limited engineering value.
+
+VRP evidence exists to make validation results attributable and reviewable.
+
+---
+
+## 3. Evidence Is Not Runtime Correctness
+
+This distinction is fundamental:
+
+    VALID EVIDENCE
+        !=
+    PROOF THAT THE ENTIRE RUNTIME IS CORRECT
+
+Evidence can support a specific claim.
+
+For example:
+
+    replay attempts = 9999
+    replay accepted = 0
+
+may support a replay-rejection verdict for the recorded scenario.
+
+It does not establish:
+
+    ALL POSSIBLE REPLAY ATTACKS ARE IMPOSSIBLE
+
+Similarly:
+
+    migration count = 1000
+    session identity preserved = yes
+
+does not prove unlimited migration correctness.
+
+Evidence must remain tied to its scope.
+
+---
+
+## 4. Runtime and Verification Are Separate Boundaries
+
+The runtime performs the operation being evaluated.
+
+The verifier evaluates the evidence exposed by that operation.
 
 Conceptually:
 
     RUNTIME
        |
+       | produces observations
        v
-    OBSERVABLE EVENTS
+    EVIDENCE BOUNDARY
        |
        v
-    EVIDENCE
-       |
-       v
-    VERIFICATION
-       |
-       v
-    VERDICT
+    VERIFIER
 
-The public verification boundary does not require disclosure of the complete runtime implementation.
+The verifier should not need to reinterpret every internal runtime mechanism.
+
+Instead, it evaluates the public evidence contract associated with the scenario.
+
+This separation allows selected claims to be checked without requiring the verifier to become the runtime itself.
 
 ---
 
-# 3. What Evidence May Contain
+## 5. Evidence Context
 
-Depending on the validation scenario, a VRP evidence bundle may contain information such as:
+An evidence bundle may include engineering context such as:
 
-- validation identifier;
-- UTC timestamp;
-- source revision;
-- source tree identity;
-- runtime environment information;
-- scenario identity;
-- observable runtime events;
-- canonical summaries;
-- counters;
-- manifests;
-- integrity hashes;
-- verification output;
-- final verdict.
+    UTC
 
-Not every validation scenario requires every field.
+    SOURCE REVISION
 
-The evidence should contain enough context to identify what was actually evaluated.
+    SOURCE TREE
 
----
+    RUNTIME VERSION
 
-# 4. Build Identity
+    ENVIRONMENT
 
-Validation evidence should be associated with a specific engineering state where practical.
+    SCENARIO
 
-Recorded validation commonly captures identifiers such as:
+    RUN IDENTIFIER
 
-    HEAD=<source revision>
+These fields do not prove correctness.
 
-and:
+They answer a different question:
 
-    TREE=<source tree identity>
+> **Which engineering state produced this evidence?**
 
-This prevents an evidence result from being presented without any connection to the build that generated it.
+That distinction is important for reproducibility.
 
 ---
 
-# 5. Environment Identity
+## 6. Scenario Identity
 
-Environment information may also be recorded.
+A verdict without a scenario definition is ambiguous.
+
+Evidence should identify what was actually being evaluated.
 
 Examples include:
 
-- operating system;
-- runtime version;
-- architecture;
-- host context;
-- validation timestamp.
+    TRANSPORT INTERRUPTION
 
-A typical validation context may therefore contain information equivalent to:
+    WIFI -> MOBILE MIGRATION
 
-    UTC=<timestamp>
-    HEAD=<revision>
-    TREE=<tree>
-    GO=<runtime version>
-    PLATFORM=<environment>
+    REPLAY STORM
 
-The exact environment fields depend on the validation scenario.
+    STALE LIFETIME DELIVERY
 
----
+    AUTHORITY ROLLBACK
 
-# 6. Scenario Identity
+    CANONICAL HISTORY VALIDATION
 
-Evidence should identify the scenario being evaluated.
+    RECOVERY
 
-Examples of public validation categories include:
-
-- transport interruption;
-- transport migration;
-- replay rejection;
-- stale-lifetime rejection;
-- authority transition;
-- recovery;
-- evidence integrity;
-- historical integrity;
-- concurrency;
-- long-duration execution.
-
-This prevents unrelated successful executions from being substituted for the scenario actually being claimed.
+A verifier should not infer a stronger scenario than the evidence identifies.
 
 ---
 
-# 7. Observable Events
+## 7. Observable Events
 
-A validation scenario may produce observable events describing externally relevant runtime behavior.
+Evidence may contain events describing externally relevant runtime behavior.
+
+Depending on the scenario, examples may include:
+
+    session created
+
+    transport attached
+
+    transport lost
+
+    replacement transport attached
+
+    migration requested
+
+    migration completed
+
+    stale operation rejected
+
+    replay rejected
+
+    authority changed
+
+    recovery completed
+
+The exact event representation depends on the validation surface.
+
+The important requirement is that the verifier knows which observations are part of the verification contract.
+
+---
+
+## 8. Canonical Summary
+
+Raw events alone may not be the most useful verification interface.
+
+A validation scenario may therefore produce a canonical summary containing derived values such as:
+
+    TOTAL_ATTEMPTS
+
+    ACCEPTED
+
+    REJECTED
+
+    SESSION_IDENTITY_BEFORE
+
+    SESSION_IDENTITY_AFTER
+
+    AUTHORITY_GENERATION_BEFORE
+
+    AUTHORITY_GENERATION_AFTER
+
+    FINAL_STATE
+
+    FINAL_VERDICT
+
+A summary should remain consistent with the evidence from which it is derived.
+
+---
+
+## 9. Manifest
+
+A manifest can bind together the artifacts that belong to one validation result.
+
+Conceptually:
+
+    MANIFEST
+       |
+       +-- scenario
+       |
+       +-- event evidence
+       |
+       +-- summary
+       |
+       +-- hashes
+       |
+       +-- engineering context
+
+The purpose is not merely packaging.
+
+The manifest gives the verifier an explicit set of artifacts that constitute the evidence being evaluated.
+
+---
+
+## 10. Hashes
+
+Cryptographic hashes can establish that the verifier is reading the same bytes that were bound into the evidence set.
+
+This supports integrity checking.
+
+However:
+
+    HASH MATCH
+       !=
+    SEMANTIC CORRECTNESS
+
+A hash can show:
+
+> This artifact has not changed relative to the value recorded in the manifest.
+
+It cannot by itself show:
+
+> The runtime behaved correctly.
+
+Semantic validation requires additional checks.
+
+---
+
+## 11. Integrity Verification
+
+Evidence integrity verification asks questions such as:
+
+- are required artifacts present;
+- do artifact hashes match;
+- is the manifest internally consistent;
+- does the summary correspond to the expected evidence set;
+- has a bound artifact changed.
+
+This is one layer of verification.
+
+It should not be confused with semantic verification.
+
+---
+
+## 12. Semantic Verification
+
+Semantic verification evaluates the meaning of the recorded evidence.
 
 Examples include:
 
-    TRANSPORT_REACHABILITY=LOST
+    replay accepted == 0
 
-    TRANSPORT_REACHABILITY=RECOVERED
+or:
 
-    REPLAY_REJECTED
+    historical operations accepted == 0
 
-    STALE_WORK_REJECTED
+or:
 
-    MIGRATION_COMPLETED
+    session identity before migration
+        ==
+    session identity after migration
 
-    SESSION_ACTIVE
+or:
 
-The public evidence model focuses on the observable result rather than requiring publication of the internal mechanism that produced it.
+    authority generation after
+        >
+    authority generation before
 
----
+where those relationships are part of the scenario contract.
 
-# 8. Canonical Summary
-
-Some validation scenarios produce a canonical summary.
-
-A summary may describe results such as:
-
-    attempts
-    accepted
-    rejected
-    migrations
-    lifecycle state
-    authority generation
-    final verdict
-
-The summary is useful for review but should not automatically be treated as sufficient evidence by itself.
-
-Where stronger evidence exists, the summary should remain consistent with that evidence.
+A useful verifier therefore evaluates more than file existence.
 
 ---
 
-# 9. Evidence Manifest
+## 13. Verdict Derivation
 
-Evidence bundles may include a manifest describing the artifacts that belong to the validation result.
+A final verdict should be derived from explicit conditions.
 
-The manifest can provide a stable inventory of the evidence being verified.
+For example, a replay scenario may conceptually require:
+
+    ATTEMPTS > 0
+        AND
+    ACCEPTED == 0
+        AND
+    REJECTED == ATTEMPTS
+
+before producing:
+
+    REPLAY_FLOOD_CONTAINED
+
+The exact conditions depend on the scenario.
+
+The important property is:
+
+> The verdict should correspond to observable verification conditions rather than merely being trusted because it appears in a file.
+
+---
+
+## 14. Independent Verification
+
+VRP uses the term **independent verification** in a specific sense.
+
+It means:
+
+> A verifier can evaluate selected exposed evidence without relying solely on the runtime process that originally printed the verdict.
 
 Conceptually:
 
-    EVIDENCE BUNDLE
-        |
-        +-- execution context
-        |
-        +-- observations
-        |
-        +-- summary
-        |
-        +-- integrity information
-        |
-        +-- verification result
-        |
-        +-- manifest
-
-The exact bundle structure may vary between validation tools.
-
----
-
-# 10. Integrity Hashes
-
-Cryptographic hashes may be used to bind evidence artifacts to expected content.
-
-Their purpose in the public evidence workflow is to detect unexpected modification of evidence inputs.
-
-The important public property is:
-
-> If evidence content changes after the recorded validation, verification should not silently treat the modified content as identical to the original evidence.
-
-The use of hashes does not by itself prove that the runtime was correct.
-
-It provides integrity information about the evidence being evaluated.
-
----
-
-# 11. Verification Is More Than Hash Comparison
-
-VRP evidence verification is not intended to mean only:
-
-    hash matches -> everything is correct
-
-Integrity checking and semantic validation are different responsibilities.
-
-A verification process may evaluate:
-
-- artifact integrity;
-- manifest consistency;
-- event consistency;
-- summary consistency;
-- historical consistency;
-- expected invariant outcomes.
-
-Therefore:
-
-    INTEGRITY VALID
-        !=
-    RUNTIME GUARANTEE AUTOMATICALLY PROVEN
-
-The final engineering conclusion depends on the validation scenario and the properties being evaluated.
-
----
-
-# 12. Evidence Modification Validation
-
-VRP engineering work has included deliberate modification of evidence inputs.
-
-The purpose is to test whether inconsistent evidence can still receive an apparently valid result.
-
-Tested categories have included modifications to:
-
-- event evidence;
-- summary information;
-- manifest-bound information;
-- historical evidence.
-
-The corresponding verification paths detected inconsistency in the exercised scenarios.
-
----
-
-# 13. Coordinated Evidence Modification
-
-Validation has also considered cases where more than one evidence component is modified.
-
-This is important because checking only one file independently can miss inconsistencies introduced across multiple artifacts.
-
-Engineering validation has exercised coordinated modifications involving combinations of:
-
-- event records;
-- summary values;
-- manifest-bound integrity information.
-
-The tested verification workflow detected the resulting inconsistency.
-
----
-
-# 14. Historical Integrity
-
-Evidence verification also includes historical consistency.
-
-A later evidence state should not silently redefine an already established historical state without detection.
-
-Historical-integrity validation has exercised attempts to modify earlier evidence history.
-
-The tested verification process detected inconsistent historical reconstruction.
-
----
-
-# 15. Historical Rewrite Rejection
-
-A historical rewrite scenario conceptually looks like:
-
-    ORIGINAL HISTORY
+    RUNTIME EXECUTION
           |
           v
-    ESTABLISHED EVIDENCE
+       EVIDENCE
           |
-          v
-    HISTORICAL MODIFICATION
-          |
-          v
-    VERIFICATION
-          |
-          X
-    INCONSISTENCY DETECTED
+          +------------------+
+                             |
+                             v
+                    SEPARATE VERIFIER
+                             |
+                             v
+                       PASS / FAIL
 
-This provides a public validation property around the integrity of recorded history.
+This reduces dependence on the original runtime's own final message.
 
 ---
 
-# 16. Independent Verification
+## 15. What Independent Verification Does Not Mean
 
-Independent verification means that the verification step can be performed separately from the protected runtime execution that originally produced the evidence.
+The phrase does not imply:
 
-Conceptually:
+    independent audit of every private source file
 
-    PROTECTED RUNTIME
-          |
-          v
-    PUBLIC EVIDENCE BOUNDARY
-          |
-          v
-    INDEPENDENT VERIFIER
-          |
-          v
-    VERIFICATION RESULT
+or:
 
-The verifier does not need unrestricted access to protected runtime internals in order to evaluate the properties intentionally represented by the public evidence boundary.
+    formal mathematical proof of the complete runtime
 
----
+or:
 
-# 17. What Independent Verification Can Establish
+    certification by an external standards body
 
-Depending on the scenario, an external verifier may be able to establish that:
+or:
 
-- expected evidence artifacts are present;
-- evidence integrity checks succeed;
-- manifest relationships are consistent;
-- observed counters are internally consistent;
-- stale operations were recorded as rejected;
-- replay attempts were recorded as rejected;
-- lifecycle identity remained consistent;
-- migration counts match expected evidence;
-- authority progression is consistent;
-- historical evidence remains consistent;
-- the expected public verdict follows from the exposed validation data.
+    proof against every possible implementation defect
 
-The exact properties depend on the verifier and scenario.
+The public claim is narrower:
+
+> Selected exposed validation evidence can be evaluated separately from the execution that generated it.
+
+That is the boundary this document uses.
 
 ---
 
-# 18. What Independent Verification Does Not Establish
-
-Independent verification should not be overstated.
-
-A public evidence verifier does not automatically prove:
-
-- correctness of every line of protected runtime code;
-- absence of every possible implementation defect;
-- correctness under every untested environment;
-- correctness under every possible failure combination;
-- universal security of the entire deployment;
-- formal mathematical correctness of the implementation.
-
-The verification claim is limited to the evidence and invariants exposed through the validation boundary.
-
----
-
-# 19. Verification Without Source Disclosure
-
-VRP intentionally separates:
-
-    SOURCE DISCLOSURE
-
-from:
-
-    EVIDENCE VERIFICATION
-
-An evaluator may verify a runtime claim without receiving unrestricted access to the implementation that produced the runtime behavior.
-
-This model is useful when:
-
-- implementation contains protected engineering work;
-- integration partners need observable guarantees;
-- evaluators need reproducible validation;
-- evidence must be reviewable outside the runtime environment.
-
-The public contract is therefore based on observable properties.
-
----
-
-# 20. Example: Replay Validation
+## 16. Replay Evidence
 
 A replay validation may expose evidence equivalent to:
 
-    SCENARIO=REPLAY_VALIDATION
+    ATTEMPTS=9999
 
-    REPLAY_ATTEMPTS=9999
+    REJECTED=9999
 
-    REPLAY_ACCEPTED=0
+    ACCEPTED=0
 
-    REPLAY_REJECTED=9999
+A verifier can evaluate the required relationship:
 
-    SESSION_IDENTITY_PRESERVED=YES
+    ACCEPTED == 0
 
-    FINAL_VERDICT=PASS
+and:
 
-A verifier can evaluate whether the evidence presented for the scenario is internally consistent.
+    REJECTED == ATTEMPTS
 
-The verifier does not need the protected replay-handling implementation in order to inspect the public result.
+If the evidence instead contains:
+
+    ACCEPTED=1
+
+the replay-rejection verdict must not remain successful.
+
+This is an example of semantic verification.
 
 ---
 
-# 21. Example: Lifetime Validation
+## 17. Lifetime-Isolation Evidence
 
-A lifecycle-isolation validation may expose:
+A stale-lifetime scenario may expose:
 
     TOTAL_INCARNATIONS=128
 
     HISTORICAL_OPERATIONS=127
 
-    HISTORICAL_ACCEPTED=0
-
     HISTORICAL_REJECTED=127
 
-    CURRENT_LIFETIME_PRESERVED=YES
+    HISTORICAL_ACCEPTED=0
 
-A verifier can evaluate the exposed lifecycle evidence and resulting verdict.
+The verifier can check that historical operations did not become current accepted work in that scenario.
 
-The internal lifecycle implementation remains outside the public evidence contract.
+The evidence does not prove that every conceivable stale-work pattern has been explored.
 
----
-
-# 22. Example: Migration Validation
-
-A migration validation may expose:
-
-    MIGRATIONS_ATTEMPTED=1000
-
-    MIGRATIONS_COMPLETED=1000
-
-    SESSION_IDENTITY_PRESERVED=YES
-
-    FINAL_VERDICT=PASS
-
-This supports review of the claimed migration result without requiring publication of the migration implementation.
+It supports the specific tested invariant.
 
 ---
 
-# 23. Example: Physical Transport Interruption
+## 18. Migration Evidence
 
-A physical network validation may expose observations such as:
+Migration evidence may include:
+
+    SESSION_BEFORE
+
+    TRANSPORT_BEFORE
+
+    SESSION_AFTER
+
+    TRANSPORT_AFTER
+
+A continuity condition can then be evaluated as:
+
+    SESSION_BEFORE == SESSION_AFTER
+
+while:
+
+    TRANSPORT_BEFORE != TRANSPORT_AFTER
+
+where that is the expected scenario.
+
+This directly represents the architectural distinction:
+
+    SESSION != TRANSPORT
+
+without claiming that transport migration itself is unique to VRP.
+
+---
+
+## 19. Physical Transport Evidence
+
+A physical interruption scenario may contain observations such as:
 
     TRANSPORT_REACHABILITY=LOST
 
@@ -488,456 +492,749 @@ followed by:
 
     TRANSPORT_REACHABILITY=RECOVERED
 
-with an observed outage interval.
+and a measured outage interval.
 
-The evidence demonstrates that a real connectivity interruption occurred during the evaluated scenario.
+This is stronger evidence of physical interruption than merely toggling an internal runtime variable.
 
-The corresponding continuity evidence can then be evaluated against that interruption.
-
----
-
-# 24. Example: Authority Validation
-
-An authority scenario may expose:
-
-    INITIAL_GENERATION=1
-
-    UNAUTHORIZED_TRANSITION=REJECTED
-
-    AUTHORIZED_TRANSITION=ACCEPTED
-
-    FINAL_GENERATION=2
-
-    FINAL_SESSION_STATE=SESSION_ACTIVE
-
-The verifier can evaluate the externally relevant authority progression without requiring publication of protected authority-management internals.
+It still does not prove what happened outside the scope of the captured observations.
 
 ---
 
-# 25. Deterministic Verification
+## 20. Authority Evidence
 
-Verification should produce stable results when evaluating identical valid evidence.
+Authority evidence may include:
 
-VRP validation work includes deterministic verification scenarios intended to ensure that repeated evaluation of the same evidence does not randomly alternate between contradictory verdicts.
+    AUTHORITY_BEFORE
 
-Deterministic behavior is particularly important for:
+    REQUESTING_ACTOR
 
-- CI;
-- external review;
-- evidence archives;
-- pilot qualification;
-- reproducibility.
+    TRANSITION_RESULT
 
----
+    AUTHORITY_AFTER
 
-# 26. Reproducibility
+    GENERATION_BEFORE
 
-A useful validation should be reproducible where the public validation boundary permits it.
+    GENERATION_AFTER
 
-Reproducibility may involve:
+A verifier can then evaluate scenario-specific conditions such as:
 
-- running a public scenario;
-- collecting evidence;
-- checking revision identity;
-- verifying manifests;
-- evaluating the final verdict.
-
-Not every protected runtime operation is publicly reproducible at implementation level.
-
-The intended reproducibility boundary is the exposed validation contract.
-
----
-
-# 27. Evidence and CI
-
-Evidence verification can be integrated into automated engineering workflows.
-
-A CI-oriented workflow may conceptually perform:
-
-    RUN VALIDATION
-          |
-          v
-    GENERATE EVIDENCE
-          |
-          v
-    VERIFY EVIDENCE
-          |
-          v
-    CHECK EXPECTED VERDICT
-          |
-          v
-    PASS / FAIL
-
-This allows evidence verification to become part of regression qualification rather than a manual afterthought.
-
----
-
-# 28. Evidence and Pilot Evaluation
-
-During a controlled pilot, evidence can provide a shared engineering boundary between:
-
-- the VRP implementation team;
-- the integration team;
-- the evaluator.
-
-Instead of relying only on verbal statements, the parties can evaluate concrete results such as:
-
-- migration outcome;
-- recovery outcome;
-- replay rejection;
-- stale-work rejection;
-- authority progression;
-- evidence consistency.
-
----
-
-# 29. Evidence and Failure Investigation
-
-Evidence is also useful when a validation fails.
-
-A failed verdict should not automatically be discarded.
-
-It can be used to determine:
-
-- what environment was running;
-- which revision was evaluated;
-- which observable event differed;
-- whether the evidence itself remained consistent;
-- whether the failure was reproducible.
-
-This supports engineering investigation without requiring the public evidence format to reveal protected runtime internals.
-
----
-
-# 30. PASS Is Not the Only Useful Result
-
-A validation system that can only produce PASS is not useful.
-
-A meaningful evidence workflow must allow:
-
-    PASS
-
-and:
-
-    FAIL
-
-and, where appropriate:
-
-    REJECTED
+    unauthorized transition rejected
 
 or:
 
-    INCONSISTENT
+    authorized transition accepted
 
-A failed validation can provide valuable engineering information.
+or:
 
-VRP engineering work has used failed regression scenarios to identify and correct runtime-boundary defects.
+    stale generation rejected
 
----
-
-# 31. Evidence Preservation
-
-Important validation results should preserve enough information to be reviewed later.
-
-Depending on the scenario, this may include:
-
-- terminal output;
-- evidence directory;
-- manifest;
-- hashes;
-- source revision;
-- source tree;
-- timestamp;
-- environment;
-- final verdict.
-
-This helps prevent a strong engineering result from becoming an unverifiable historical anecdote.
+The verifier should not infer authority properties that are absent from the evidence contract.
 
 ---
 
-# 32. Evidence Binding
+## 21. Recovery Evidence
 
-A validation result is stronger when multiple relevant artifacts are bound into one identifiable evidence set.
+Recovery evidence may combine:
 
-Conceptually:
+    transport failure
 
-    BUILD IDENTITY
-          +
-    ENVIRONMENT
-          +
-    OBSERVATIONS
-          +
-    SUMMARY
-          +
-    MANIFEST
-          +
-    INTEGRITY INFORMATION
-          =
-    REVIEWABLE VALIDATION RECORD
-
-No individual component should be interpreted as stronger than the validation model actually supports.
-
----
-
-# 33. Evidence Boundary
-
-The evidence boundary intentionally exposes only information required for validation.
-
-It is not intended to expose:
-
-- protected runtime algorithms;
-- private source code;
-- secret material;
-- internal engineering mechanisms;
-- unnecessary implementation state.
-
-The goal is:
-
-> **Maximum useful verification with minimum unnecessary implementation disclosure.**
-
----
-
-# 34. Evidence Authenticity and Evidence Integrity
-
-Evidence integrity and evidence authenticity are related but distinct concepts.
-
-Integrity asks:
-
-> Has the evaluated evidence changed relative to the integrity information used by the verifier?
-
-Authenticity asks:
-
-> What establishes who or what produced the evidence?
-
-A hash alone provides integrity comparison.
-
-It does not automatically establish producer identity.
-
-Deployment environments requiring stronger producer authenticity should define the required trust and attestation model as part of their integration and security review.
-
-VRP does not claim that a standalone hash is equivalent to cryptographic producer authentication.
-
----
-
-# 35. Formal Verification Scope
-
-VRP engineering validation includes deterministic testing, invariant-oriented testing, concurrency testing, failure injection, evidence verification, and reproducible validation.
-
-These should not be confused with a claim of complete formal verification.
-
-Unless a particular public artifact explicitly states otherwise, VRP does not claim that the complete protected runtime has been formally proven using systems such as:
-
-- TLA+;
-- Coq;
-- Lean;
-- Isabelle;
-- equivalent full formal proof systems.
-
-The current evidence model is an engineering validation system.
-
-That distinction is intentional and public.
-
----
-
-# 36. Trust Boundary
-
-Independent verification reduces the amount of trust required in a simple runtime claim.
-
-It does not eliminate every trust assumption.
-
-An evaluator must still consider:
-
-- the execution environment;
-- evidence collection boundary;
-- verifier correctness;
-- build identity;
-- deployment configuration.
-
-The objective is therefore not:
-
-    ZERO TRUST IN EVERYTHING
-
-The objective is:
-
-    EXPLICIT TRUST BOUNDARIES
-            +
-    REVIEWABLE EVIDENCE
-            +
-    REPRODUCIBLE VERIFICATION
-
----
-
-# 37. Public Verification Questions
-
-An external evaluator should be able to ask concrete questions.
-
-For example:
-
-    Was the expected build evaluated?
-
-    Did a real transport interruption occur?
-
-    Was session identity preserved?
-
-    Were replay attempts rejected?
-
-    Was historical work rejected?
-
-    Did authority progress monotonically?
-
-    Did the final canonical state match the scenario expectation?
-
-    Are evidence artifacts internally consistent?
-
-    Does independent verification reproduce the expected verdict?
-
-These are stronger questions than simply asking:
-
-    "Does VRP work?"
-
----
-
-# 38. Current Verification Coverage
-
-Current public engineering evidence includes validation around:
-
-    transport continuity
+    replacement availability
 
     migration
 
-    replay rejection
+    lifecycle identity
 
-    stale-lifetime rejection
+    authority state
 
-    authority continuity
+    canonical state
 
-    authority rollback rejection
+    final recovery state
 
-    canonical history integrity
+The verifier should evaluate the properties explicitly defined by the scenario.
 
-    runtime recovery
-
-    concurrency
-
-    evidence modification detection
-
-    historical rewrite detection
-
-    independent evidence verification
+A successful recovery verdict should not automatically imply zero packet loss, zero latency, or uninterrupted application behavior unless those properties were separately measured.
 
 ---
 
-# 39. Verification Status
+## 22. Evidence Modification Testing
 
-Current public status:
+A verification model should be tested against corrupted evidence rather than only valid evidence.
 
-    Evidence generation                     IMPLEMENTED
+VRP engineering validation has deliberately modified evidence artifacts and then rerun verification.
 
-    Build identity capture                  IMPLEMENTED
+Tested modifications have included:
 
-    Environment capture                     IMPLEMENTED
+- event evidence;
+- summary counters;
+- manifest-bound hashes;
+- historical evidence.
 
-    Integrity hashing                       IMPLEMENTED
+The objective is straightforward:
 
-    Evidence manifests                      IMPLEMENTED
-
-    Evidence consistency verification       VALIDATED
-
-    Evidence modification detection         VALIDATED
-
-    Historical rewrite detection            VALIDATED
-
-    Independent evidence verification       VALIDATED
-
-    Deterministic verification              VALIDATED
-
-    Controlled pilot verification           READY FOR EVALUATION
-
-    Full formal proof of entire runtime      NOT CLAIMED
+> If evidence no longer satisfies the verification contract, the verifier should not continue to report the original successful verdict.
 
 ---
 
-# 40. What an External Reviewer Should Expect
+## 23. Coordinated Modification
 
-An external reviewer should expect VRP public validation to provide:
+A stronger integrity test modifies more than one artifact.
 
-- a clearly defined scenario;
-- an observable invariant;
-- identifiable evidence;
-- an explicit verdict;
-- enough context to understand what was evaluated;
-- verification tooling or verification output where applicable.
+For example:
 
-The reviewer should not expect public evidence documentation to reveal protected implementation internals unrelated to verification.
+    event changed
 
----
+    summary changed to match
 
-# 41. What an External Reviewer Should Challenge
+    manifest hashes changed
 
-Reviewers are encouraged to challenge:
+A verifier that only checks one superficial relationship could incorrectly accept such a modified evidence set.
 
-- unclear claims;
-- missing environment identity;
-- unverifiable counters;
-- inconsistent evidence;
-- ambiguous lifecycle identity;
-- unsupported deployment conclusions;
-- results that cannot be reproduced at the advertised validation boundary.
+VRP validation has therefore included coordinated evidence-modification scenarios.
 
-This improves the engineering value of the public validation surface.
+These tests evaluate the exposed verification boundary.
+
+They do not turn the evidence system into a substitute for external trust anchors or source-level audit.
 
 ---
 
-# 42. Deployment Interpretation
+## 24. Historical Integrity
 
-The evidence model supports controlled deployment evaluation by giving evaluators a concrete verification boundary.
+Evidence may form part of a longer validation history.
 
-It allows a deployment team to evaluate observable runtime properties while maintaining separation between:
+A historical integrity check asks whether previously established history can be replaced with a contradictory history without detection.
 
-    PUBLIC GUARANTEES
+VRP validation has exercised historical rewrite scenarios.
+
+The tested verification workflow detected inconsistent historical reconstruction.
+
+This supports the bounded claim:
+
+    HISTORICAL_EVIDENCE_INTEGRITY=VALIDATED
+
+for the exercised evidence model.
+
+---
+
+## 25. Evidence Authenticity vs Evidence Integrity
+
+These concepts should not be confused.
+
+### Integrity
+
+Answers:
+
+> Is this artifact consistent with the evidence set or history against which it is being checked?
+
+### Authenticity
+
+Answers:
+
+> Who produced this evidence, and why should that producer identity be trusted?
+
+Hashes and internal consistency primarily address integrity.
+
+Authenticity requires an appropriate trust model.
+
+A deployment should not represent integrity checking alone as proof of organizational or operator identity.
+
+---
+
+## 26. Evidence Does Not Create Trust Automatically
+
+Suppose an evidence bundle is perfectly self-consistent.
+
+That proves neither:
+
+    the host was uncompromised
+
+nor:
+
+    the operator was honest
+
+nor:
+
+    every runtime observation was complete
+
+nor:
+
+    the protected implementation was defect-free
+
+A useful evidence model makes specific claims checkable.
+
+It does not eliminate the need to understand the trust boundary.
+
+---
+
+## 27. Trust Boundary
+
+For public verification, the relevant trust questions include:
+
+- which observations are produced by the runtime;
+- which artifacts are bound together;
+- which relationships the verifier recalculates;
+- which inputs remain trusted;
+- which environment facts are externally observable;
+- which properties are outside the verifier's scope.
+
+These questions should be explicit during technical review.
+
+---
+
+## 28. Build Binding
+
+A validation result should ideally be associated with the source state that produced it.
+
+Typical identifiers include:
+
+    HEAD=<revision>
+
+    TREE=<tree>
+
+This improves attribution.
+
+It does not mean:
+
+    HASHED BUILD IDENTITY == CORRECT BUILD
+
+It means:
+
+> The evidence identifies the engineering revision against which the result is being claimed.
+
+---
+
+## 29. Environment Binding
+
+Validation evidence may also identify the execution environment.
+
+Examples include:
+
+    operating system
+
+    kernel
+
+    architecture
+
+    Go version
+
+    host/runtime context
+
+Environment identity is useful because behavior may differ across platforms.
+
+A successful result on one environment should not automatically be generalized to every environment.
+
+---
+
+## 30. Time Binding
+
+UTC timestamps help establish when validation occurred.
+
+They are useful for:
+
+- correlating runs;
+- identifying evidence sets;
+- comparing revisions;
+- ordering engineering events.
+
+A timestamp alone is not a secure proof of historical truth.
+
+Its strength depends on the surrounding evidence and trust model.
+
+---
+
+## 31. Deterministic Verification
+
+Where possible, a verifier should produce the same verdict for the same valid evidence.
+
+Deterministic verification improves:
+
+- reproducibility;
+- CI integration;
+- external review;
+- regression testing.
+
+VRP has also used repeated deterministic execution as part of runtime qualification.
+
+Runtime determinism and verifier determinism are related engineering goals but should not be treated as identical properties.
+
+---
+
+## 32. Failure Is a First-Class Verification Result
+
+A useful verifier must be able to fail.
+
+Examples include:
+
+    HASH_MISMATCH
+
+    MANIFEST_INCONSISTENCY
+
+    COUNTER_MISMATCH
+
+    STALE_OPERATION_ACCEPTED
+
+    REPLAY_ACCEPTED
+
+    AUTHORITY_ROLLBACK_ACCEPTED
+
+    HISTORY_REWRITE_DETECTED
+
+    VERDICT_INCONSISTENT
+
+A verification pipeline that always ends in PASS would provide little assurance.
+
+---
+
+## 33. Evidence Preservation
+
+Important validation evidence should be preserved together with enough context to understand it later.
+
+Depending on the scenario, useful preservation includes:
+
+    source identity
+
+    scenario definition
+
+    execution environment
+
+    event evidence
+
+    summary
+
+    manifest
+
+    verifier output
+
+    final verdict
+
+This allows later review without relying entirely on memory or screenshots.
+
+---
+
+## 34. Screenshots Are Supporting Evidence
+
+Terminal screenshots and recordings can be useful.
+
+They can demonstrate that:
+
+- a command was executed;
+- physical connectivity was changed;
+- a runtime produced an observation;
+- a verifier produced a result.
+
+But screenshots alone are weaker than machine-verifiable evidence for many claims.
+
+The strongest public validation combines human-observable demonstration with structured evidence where practical.
+
+---
+
+## 35. Evidence and CI
+
+A public verifier can also be useful in automated engineering workflows.
+
+Conceptually:
+
+    BUILD
+      |
+      v
+    RUN VALIDATION
+      |
+      v
+    PRODUCE EVIDENCE
+      |
+      v
+    VERIFY
+      |
+      +--> PASS -> continue
+      |
+      +--> FAIL -> block / investigate
+
+This makes selected invariants suitable for regression gating.
+
+The exact CI integration remains deployment-specific.
+
+---
+
+## 36. Evidence and External Review
+
+An external reviewer should be able to ask:
+
+1. What claim is being made?
+2. Which evidence supports it?
+3. Which evidence fields are trusted?
+4. Which relationships are recalculated?
+5. Can the verifier fail?
+6. What happens if evidence is modified?
+7. Is the result tied to a build?
+8. Is the result tied to an environment?
+9. What does the verdict not prove?
+10. Can the scenario be reproduced?
+
+These questions are more useful than simply asking whether a badge says PASS.
+
+---
+
+## 37. Formal Verification Boundary
+
+VRP engineering validation includes:
+
+- regression testing;
+- adversarial scenarios;
+- failure injection;
+- repeated deterministic execution;
+- race detection;
+- long-duration execution;
+- evidence-integrity testing;
+- independent evidence verification.
+
+Unless a specific artifact explicitly establishes otherwise, the project does not claim complete formal verification of the runtime using proof systems or formal specification tools such as:
+
+    TLA+
+    Coq
+    Lean
+    Isabelle
+
+Engineering validation and formal verification are different forms of evidence.
+
+Neither term should be used as a substitute for the other.
+
+---
+
+## 38. Independent Verification and Protected Implementation
+
+The public verification model does not require disclosure of protected runtime implementation details.
+
+That means an external verifier may be able to evaluate:
+
+    exposed evidence
+
+without receiving:
+
+    protected implementation source
+
+This creates an intentional limitation.
+
+The verifier can validate the public evidence contract.
+
+It cannot inspect implementation behavior that is neither represented in the evidence nor otherwise exposed for review.
+
+This limitation should remain explicit.
+
+---
+
+## 39. Evidence Surface
+
+A good public evidence surface should expose enough information to test the public claim without unnecessarily coupling the verifier to internal implementation structure.
+
+This supports two goals:
+
+    REVIEWABILITY
 
 and:
 
-    PROTECTED IMPLEMENTATION
+    IMPLEMENTATION BOUNDARY
 
-The evidence model therefore supports deployment review without requiring unrestricted source disclosure.
-
----
-
-# 43. Overall Assessment
-
-VRP does not treat documentation alone as proof of runtime behavior.
-
-The project has developed an evidence-oriented validation workflow in which engineering claims can be associated with:
-
-- identifiable builds;
-- observable runtime events;
-- canonical summaries;
-- integrity information;
-- verification results;
-- explicit verdicts.
-
-Evidence-integrity validation has included deliberate evidence modification and historical rewrite scenarios.
-
-Independent verification has been exercised against exposed evidence artifacts.
-
-The appropriate public conclusion is:
-
-> **VRP provides an engineering evidence boundary through which selected continuity, lifecycle, authority, recovery, and integrity properties can be independently evaluated without requiring disclosure of protected runtime implementation details.**
-
-This is an engineering verification model.
-
-It is not presented as complete formal verification of every runtime behavior.
+The evidence contract should therefore focus on externally relevant invariants rather than mirroring private internal objects.
 
 ---
 
-## Public Scope
+## 40. Claim-to-Evidence Mapping
 
-This document describes the public evidence and verification model.
+A reviewer should be able to map each important claim to evidence.
 
-It intentionally does not disclose protected runtime implementation mechanisms.
+Example:
+
+    CLAIM:
+    Historical lifetime work is rejected.
+
+    EVIDENCE:
+    historical_attempts=127
+    historical_rejected=127
+    historical_accepted=0
+
+    VERIFICATION:
+    historical_accepted == 0
+    historical_rejected == historical_attempts
+
+    VERDICT:
+    STALE_LIFETIME_REJECTION_PRESERVED
+
+This structure is preferable to unsupported narrative claims.
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Engineering Documentation — October 2026**
+## 41. Evidence-to-Limitation Mapping
+
+Each result should also identify what it does not establish.
+
+Example:
+
+    RESULT:
+    1000 migrations completed with session identity preserved.
+
+    SUPPORTS:
+    repeated migration path exercised successfully.
+
+    DOES NOT ESTABLISH:
+    unlimited migration count
+    zero migration latency
+    zero packet loss
+    correctness on every transport
+    correctness on every platform
+
+This prevents numerical results from being interpreted more broadly than intended.
+
+---
+
+## 42. Current Public Evidence Categories
+
+The VRP engineering record includes evidence associated with categories such as:
+
+    TRANSPORT CONTINUITY
+
+    MIGRATION
+
+    PHYSICAL NETWORK INTERRUPTION
+
+    REPLAY REJECTION
+
+    LIFETIME ISOLATION
+
+    CANONICAL ADMISSION
+
+    AUTHORITY CONTINUITY
+
+    AUTHORITY ROLLBACK
+
+    RECOVERY
+
+    CONCURRENCY
+
+    LONG-DURATION EXECUTION
+
+    EVIDENCE INTEGRITY
+
+    HISTORICAL INTEGRITY
+
+    INDEPENDENT VERIFICATION
+
+Not every category uses exactly the same evidence structure.
+
+The verification contract should remain specific to the scenario.
+
+---
+
+## 43. Representative Recorded Results
+
+Examples from the current engineering record include:
+
+    1000 transport migrations
+    session identity preserved
+
+    9999 replay attempts
+    9999 rejected
+    0 accepted
+
+    128 sequential incarnations
+    127 historical operations
+    127 rejected
+    0 accepted
+
+    physical transport interruption
+    reachability LOST -> RECOVERED
+
+    deterministic concurrency scenario
+    1000 repeated successful executions
+
+These are scenario results.
+
+They are not universal performance specifications.
+
+---
+
+## 44. Relationship to Protocol Comparison
+
+Evidence should also improve comparisons with existing technologies.
+
+Instead of claiming:
+
+> VRP migrates connections better.
+
+a reviewer can ask:
+
+    What identity survives migration?
+
+    How is old lifetime work rejected?
+
+    How is authority represented?
+
+    What becomes canonical history?
+
+    Which evidence demonstrates the result?
+
+This makes comparison with QUIC, Multipath TCP, VPN roaming, or application reconnect mechanisms more precise.
+
+The useful comparison is between explicit properties, not marketing categories.
+
+---
+
+## 45. Verification Does Not Replace Deployment Qualification
+
+A project-level evidence bundle cannot automatically certify a target deployment.
+
+The target environment may differ in:
+
+- network topology;
+- transports;
+- operating system;
+- application behavior;
+- scale;
+- latency;
+- failure characteristics;
+- operational controls.
+
+Deployment qualification should therefore generate its own evidence for the properties that matter in that environment.
+
+---
+
+## 46. Recommended External Review Flow
+
+A reviewer evaluating a VRP validation result can use the following sequence:
+
+    1. IDENTIFY CLAIM
+
+    2. IDENTIFY SCENARIO
+
+    3. IDENTIFY BUILD
+
+    4. IDENTIFY ENVIRONMENT
+
+    5. INSPECT EVIDENCE SET
+
+    6. VERIFY INTEGRITY
+
+    7. VERIFY SEMANTIC CONDITIONS
+
+    8. INSPECT VERDICT
+
+    9. CHECK LIMITATIONS
+
+    10. REPRODUCE WHERE PRACTICAL
+
+This makes review repeatable and explicit.
+
+---
+
+## 47. Verification Failure Policy
+
+If verification fails, the successful runtime verdict should not be treated as independently established.
+
+For example:
+
+    RUNTIME_VERDICT=PASS
+
+but:
+
+    INDEPENDENT_VERIFICATION=FAIL
+
+should be reported as a verification failure requiring investigation.
+
+The runtime's own PASS must not override contradictory verification evidence.
+
+---
+
+## 48. Current Verification Position
+
+The current public position can be summarized as:
+
+    STRUCTURED VALIDATION EVIDENCE       AVAILABLE
+
+    BUILD / ENVIRONMENT ATTRIBUTION      SUPPORTED
+
+    INTEGRITY CHECKING                   VALIDATED
+
+    SEMANTIC VERIFICATION                VALIDATED FOR EXPOSED SCENARIOS
+
+    EVIDENCE MODIFICATION TESTING        COMPLETED
+
+    COORDINATED MODIFICATION TESTING     COMPLETED
+
+    HISTORICAL REWRITE DETECTION         VALIDATED
+
+    INDEPENDENT EVIDENCE VERIFICATION    VALIDATED
+
+    INDEPENDENT PRIVATE SOURCE AUDIT     NOT IMPLIED
+
+    COMPLETE FORMAL VERIFICATION         NOT CLAIMED
+
+---
+
+## 49. What the Evidence Model Establishes
+
+The current evidence model supports bounded claims such as:
+
+- a validation result can be tied to an identifiable engineering context;
+- selected scenario observations can be preserved in structured evidence;
+- artifact integrity can be checked;
+- semantic relationships can be recalculated for supported scenarios;
+- inconsistent evidence modification can be detected by the tested verifier;
+- historical rewrite can be detected by the tested evidence model;
+- a separate verifier can evaluate selected claims without trusting only the runtime's printed verdict.
+
+These are concrete engineering properties.
+
+---
+
+## 50. What the Evidence Model Does Not Establish
+
+The evidence model does not establish:
+
+    COMPLETE RUNTIME CORRECTNESS
+
+    COMPLETE HOST INTEGRITY
+
+    COMPLETE OPERATOR TRUSTWORTHINESS
+
+    COMPLETE SOURCE AUTHENTICITY
+
+    COMPLETE OBSERVATION COVERAGE
+
+    FORMAL PROOF OF ALL INVARIANTS
+
+    UNIVERSAL DEPLOYMENT SECURITY
+
+These require different evidence or trust mechanisms.
+
+---
+
+## Conclusion
+
+VRP treats evidence as part of the engineering validation boundary rather than as decoration around a PASS message.
+
+The intended model is:
+
+    CLAIM
+      |
+      v
+    SCENARIO
+      |
+      v
+    OBSERVATION
+      |
+      v
+    EVIDENCE
+      |
+      v
+    INTEGRITY + SEMANTIC VERIFICATION
+      |
+      v
+    BOUNDED VERDICT
+
+The strongest appropriate public statement is:
+
+> **Selected VRP continuity, lifecycle, authority, recovery, and evidence-integrity claims can be evaluated through structured evidence and a verification path separate from the runtime execution that originally produced the result.**
+
+That does not eliminate the need for source review, formal methods, deployment qualification, or independent security assessment where those are required.
+
+It provides a narrower and testable property:
+
+> **The exposed claim does not have to be accepted solely because the runtime says it passed.**
