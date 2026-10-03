@@ -1,386 +1,344 @@
 # VRP Failure and Recovery Validation
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Failure and Recovery Validation  
-**Status:** Public  
-**Validation Scope:** Engineering evidence available as of October 2026
+**Status:** Public engineering validation  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document summarizes the failure and recovery conditions that Veil Routing Protocol (VRP) has been exercised against.
+This document describes how Veil Routing Protocol (VRP) is validated when connectivity, transport, lifecycle, or authority changes unexpectedly.
 
-The objective is to document observable behavior under transport disruption, migration, stale work, replay, authority changes, recovery, runtime pressure, and long-duration execution.
+The objective is not to claim that failures can be eliminated.
 
-This document describes public engineering properties and validation outcomes only.
+The engineering question is:
 
-Protected runtime implementation details are outside its scope.
+> **When part of the communication environment fails or changes, which state is allowed to survive, which work is allowed to continue, and which work must be rejected?**
 
----
+VRP recovery validation therefore focuses on preserving:
 
-# 1. Failure Model
+- logical session identity;
+- current lifecycle identity;
+- canonical state;
+- authority lineage;
+- replay rejection;
+- stale-work rejection;
+- evidence consistency.
 
-VRP is designed around the assumption that transport infrastructure is not permanently stable.
-
-A running system may encounter:
-
-- interface loss;
-- path loss;
-- transport interruption;
-- relay changes;
-- latency spikes;
-- jitter;
-- packet reordering;
-- congestion;
-- duplicate delivery;
-- delayed delivery;
-- stale work;
-- replay;
-- infrastructure restart;
-- authority changes;
-- partial recovery.
-
-These conditions are treated as expected engineering realities rather than exceptional assumptions that invalidate the architecture.
+The guarantees in this document are engineering-validated properties under tested conditions. They are not claims of universal correctness.
 
 ---
 
-# 2. Recovery Principle
+## 2. Failure Model
 
-The central recovery principle is:
+VRP distinguishes multiple failure classes rather than representing all disruption as a generic connection failure.
 
-> **Transport failure must not automatically become session identity failure.**
+Relevant classes include:
 
-VRP separates:
-
-    SESSION IDENTITY
-
-from:
-
-    TRANSPORT AVAILABILITY
-
-and from:
-
-    PATH AVAILABILITY
-
-This allows the runtime to reason about continuity independently of the transport currently carrying traffic.
-
----
-
-# 3. Failure Classification
-
-VRP validation has exercised several broad failure categories.
-
-    TRANSPORT FAILURE
-    PATH FAILURE
-    CONNECTIVITY INTERRUPTION
-    REPLAY
+    TRANSPORT LOSS
+    PATH LOSS
+    TRANSPORT REPLACEMENT
+    NETWORK REBINDING
+    DELAYED HISTORICAL WORK
     DUPLICATE DELIVERY
-    STALE LIFETIME WORK
+    REPLAY
     INVALID STATE TRANSITION
-    AUTHORITY FAILURE
+    AUTHORITY LOSS
+    STALE AUTHORITY
     AUTHORITY ROLLBACK
-    RECOVERY RACE
+    RUNTIME RESTART
     EVIDENCE INCONSISTENCY
-    RUNTIME PRESSURE
-    LONG-DURATION TURBULENCE
 
-The expected outcome depends on the scenario.
+These failures do not have identical consequences.
 
-A failure may result in:
+A transport failure does not automatically invalidate logical session identity.
 
-    PRESERVED
+A stale lifecycle operation does not become valid merely because the runtime is recovering.
 
-or:
-
-    REJECTED
-
-or:
-
-    CONTAINED
-
-The objective is not to convert every failure into uninterrupted packet delivery.
-
-The objective is to prevent transport failure or invalid historical work from silently corrupting canonical session continuity.
+A reachable replacement path does not automatically receive canonical authority.
 
 ---
 
-# 4. Physical Network Interruption
+## 3. Recovery Principle
 
-VRP has been exercised against an actual physical network interruption.
+The central recovery rule is:
 
-During a recorded validation, transport reachability transitioned to:
+> **Recovery may replace transport state, but it must not silently redefine canonical session or authority state.**
+
+Conceptually:
+
+    SESSION S
+       |
+    TRANSPORT A
+       |
+       X
+    FAILURE
+       |
+    TRANSPORT B
+       |
+    SESSION S
+
+can be valid.
+
+The following is not an acceptable recovery model:
+
+    FAILURE
+       |
+       v
+    BYPASS LIFECYCLE / AUTHORITY RULES
+       |
+       v
+    ACCEPT
+
+Recovery remains subject to canonical admission.
+
+---
+
+## 4. Failure Is Observable
+
+VRP does not define continuity as the absence of observable failure.
+
+If the physical network disappears, the correct observation may be:
 
     TRANSPORT_REACHABILITY=LOST
 
-The network was subsequently restored and the observer reported:
+The continuity claim is not:
+
+> The transport never failed.
+
+The property being evaluated is:
+
+> The transport failure did not automatically corrupt or redefine higher-level session state that was expected to survive the failure.
+
+This distinction is important.
+
+Transport availability and session continuity are related, but they are not the same state.
+
+---
+
+## 5. Real Transport Interruption
+
+VRP has been exercised with an actual network interruption rather than only an internal simulated failure flag.
+
+A recorded validation observed:
+
+    TRANSPORT_REACHABILITY=LOST
+
+followed later by:
 
     TRANSPORT_REACHABILITY=RECOVERED
 
 The measured interruption was approximately:
 
-    41.6 seconds
+    OBSERVED_OUTAGE_MS=41633
 
-This validation demonstrated that transport reachability could disappear and later return while remaining conceptually separate from the higher-level session continuity model.
+The duration is not presented as a VRP recovery benchmark.
+
+It records the physical outage that occurred during that validation.
+
+The relevant result is that real transport reachability disappeared and later returned while the logical session model remained independently identifiable.
 
 ---
 
-# 5. Transport Replacement
+## 6. Transport Replacement
 
-Transport replacement is a primary VRP validation scenario.
+A failed transport may be replaced by another viable transport.
 
-The runtime has been exercised across:
+The tested architectural relationship is:
 
-- transport loss;
-- replacement transport availability;
-- migration;
-- recovery;
-- return to active operation.
-
-The architectural expectation is:
-
-    SESSION
+    SESSION S
        |
-       +---- TRANSPORT A
+    TRANSPORT A
        |
-       +---- TRANSPORT B
+       X
+    TRANSPORT A LOST
        |
-       +---- TRANSPORT C
+       v
+    TRANSPORT B AVAILABLE
+       |
+       v
+    SESSION S
 
-rather than:
+The replacement transport is not assumed to be the session itself.
 
-    SESSION A = TRANSPORT A
-    SESSION B = TRANSPORT B
-    SESSION C = TRANSPORT C
+Validated property:
 
-This distinction is the foundation of continuity recovery.
+    SUPPORTED_TRANSPORT_REPLACEMENT
+                |
+                v
+    SESSION_IDENTITY_PRESERVED
 
----
-
-# 6. Wi-Fi to Mobile Transition
-
-VRP validation has included transitions equivalent to:
-
-    Wi-Fi
-      |
-      X
-    transport unavailable
-      |
-      v
-    replacement transport
-      |
-      v
-    mobile / alternative path
-
-The tested objective is preservation of session identity while the transport underneath the session changes.
-
-Recorded validation produced continuity-preserved outcomes under the exercised scenario.
+under the tested conditions.
 
 ---
 
-# 7. Repeated Migration
+## 7. Migration
 
-Recovery behavior has been tested beyond a single migration.
+Transport recovery and migration are related but different.
 
-A recorded migration-stress validation completed:
+Recovery asks:
 
-    1,000 migrations
+> Can the runtime return to an accepted operational state after disruption?
 
-while preserving session identity.
+Migration asks:
 
-This is important because a continuity architecture must tolerate repeated environmental changes rather than only one controlled failover.
+> Can the logical session move to another transport or path without being unnecessarily replaced?
 
----
+VRP validates both.
 
-# 8. NAT and Rebinding-Oriented Validation
+A recorded stress scenario completed:
 
-VRP continuity validation includes network conditions where the observable transport path may change while the logical session remains valid.
+    MIGRATIONS=1000
+    SESSION_IDENTITY_PRESERVED=YES
 
-Relevant scenarios include:
+The count demonstrates repeated execution of the migration path.
 
-- endpoint rebinding;
-- NAT-style path changes;
-- replacement network paths;
-- transport identity changes.
-
-The public guarantee is not tied to a particular NAT implementation.
-
-The validated architectural property is that transport/path changes do not automatically redefine the logical session.
+It is not presented as a universal scale limit or throughput benchmark.
 
 ---
 
-# 9. Path Failure
+## 8. Network Rebinding
 
-VRP distinguishes path state from session state.
+Some network changes alter transport observations without necessarily representing a new logical session.
 
-A path may become:
+Examples include changes associated with:
 
-    DEGRADED
+- NAT rebinding;
+- CGNAT behavior;
+- interface changes;
+- endpoint changes;
+- path changes;
+- Wi-Fi/mobile transitions.
 
-or:
+VRP treats these as transport/path events rather than automatic session replacement.
 
-    UNAVAILABLE
-
-without requiring the logical session identity to be replaced.
-
-Path-oriented validation has exercised:
-
-- path degradation;
-- path loss;
-- replacement path selection;
-- migration;
-- recovery.
+Whether continuity can actually be maintained still depends on the availability of a viable transport and the deployment environment.
 
 ---
 
-# 10. Runtime Recovery
+## 9. Recovery and Session Lifetime
 
-Recovery validation has exercised transitions through non-active states and back into accepted active operation.
+A recovery event may occur while old work remains in flight.
 
-A representative validated flow is:
+This creates a distributed-systems condition such as:
 
-    SESSION_ACTIVE
+    LIFETIME N
+        |
+        v
+    FAILURE / RECREATION
+        |
+        v
+    LIFETIME N+1
+        |
+        +---- delayed work from N arrives
+
+The delayed work must not become current merely because it references the same logical SessionID.
+
+VRP therefore distinguishes logical session identity from lifecycle identity.
+
+---
+
+## 10. Historical Work During Recovery
+
+A dedicated validation created 128 sequential incarnations of the same logical session identity.
+
+After the final incarnation became current, operations associated with the previous 127 incarnations were delivered concurrently.
+
+Result:
+
+    TOTAL_INCARNATIONS=128
+    HISTORICAL_OPERATIONS=127
+    HISTORICAL_ACCEPTED=0
+    HISTORICAL_REJECTED=127
+    CURRENT_LIFETIME_PRESERVED=YES
+
+The current state was intentionally selected so that the operation type could otherwise be accepted.
+
+The test therefore exercised lifecycle isolation rather than relying only on state-machine invalidity.
+
+Recovery implication:
+
+> A newer lifetime remained authoritative despite delayed work from historical lifetimes.
+
+---
+
+## 11. Replay During Recovery
+
+Recovery does not make replay valid.
+
+The required relationship remains:
+
+    PREVIOUSLY OBSERVED WORK
+            |
+            v
+    REPLAYED AFTER FAILURE
+            |
+            X
+    NOT NEW CANONICAL WORK
+
+Replay validation has included high-volume scenarios.
+
+One recorded run produced:
+
+    REPLAY_ATTEMPTS=9999
+    REPLAY_REJECTED=9999
+    REPLAY_ACCEPTED=0
+
+The important property is zero accepted replays in that scenario, not the specific attempt count.
+
+---
+
+## 12. Duplicate Delivery
+
+Network disruption and recovery may create duplicate-delivery conditions.
+
+The required behavior is:
+
+    VALID OPERATION
           |
           v
-    transport/path disruption
-          |
-          v
-    DETACH_TRANSPORT
-          |
-          v
-       MIGRATION
-          |
-          v
-    SESSION_RECOVERED
-          |
-          v
-    SESSION_ACTIVE
+    ACCEPTED ONCE
 
-A validated authority and migration scenario concluded with:
-
-    FINAL_SESSION_STATE=SESSION_ACTIVE
-
----
-
-# 11. Recovery Does Not Mean Failure Never Happened
-
-VRP does not redefine failure as success.
-
-If a physical transport disappears, the transport is unavailable.
-
-If connectivity disappears, packets may not be deliverable during that period.
-
-Recovery means that the higher-level continuity model can preserve enough canonical identity and state to continue correctly when viable transport becomes available again.
-
-Therefore:
-
-    transport outage != zero packet loss
-
-and:
-
-    continuity preservation != physical network immortality
-
----
-
-# 12. Stale Work During Recovery
-
-Recovery creates a difficult distributed-systems problem:
-
-> Work created before recovery may arrive after recovery.
-
-VRP explicitly validates this condition.
-
-Historical work from previous lifetimes has been delivered after a newer session incarnation became current.
-
-The expected behavior is:
-
-    historical work
-          |
-          v
-    lifecycle validation
+    DUPLICATE DELIVERY
           |
           X
-       REJECTED
+    NO SECOND CANONICAL ACCEPTANCE
 
-rather than:
-
-    historical work
-          |
-          v
-    silently accepted as current
+Duplicate handling is therefore part of recovery correctness rather than merely a transport optimization.
 
 ---
 
-# 13. Multi-Reincarnation Recovery Validation
+## 13. Invalid State Transitions During Recovery
 
-A dedicated validation exercised repeated recreation of the same logical session identifier.
+Failure does not suspend the canonical state machine.
 
-Observed scenario:
+If an event is invalid for the current state, it remains invalid during recovery.
 
-    Sequential incarnations:           128
-    Historical delayed operations:     127
-    Historical operations rejected:    127
-    Historical operations accepted:    0
+Expected behavior:
 
-The current incarnation remained authoritative.
-
-This validates recovery behavior across more than a single previous lifetime.
-
----
-
-# 14. Replay During Recovery
-
-Replay is particularly important around recovery boundaries because previously valid work may still exist in the network or in delayed processing paths.
-
-VRP replay validation has exercised:
-
-- duplicate work;
-- previously observed work;
-- stale sequences;
-- replay flooding;
-- historical lifecycle replay.
-
-A recorded live validation rejected:
-
-    9,999 replay attempts
-
-without replacing the current session identity.
-
----
-
-# 15. Duplicate Delivery
-
-Duplicate delivery is treated separately from legitimate repeated operations.
-
-Validation has exercised duplicate and replay conditions to confirm that previously processed work does not automatically become new canonical work.
-
-The expected property is:
-
-    accepted canonical work
+    RECOVERY IN PROGRESS
             +
-    duplicate delivery
-            =
-    no second canonical acceptance
+    INVALID TRANSITION
+            |
+            X
+         REJECTED
+
+A recovery path that silently accepts otherwise invalid state transitions would weaken canonical-state guarantees.
 
 ---
 
-# 16. Invalid Transition During Recovery
+## 14. Canonical Recovery
 
-Recovery does not disable the canonical state machine.
+Successful recovery should leave one coherent accepted state.
 
-An event must still be valid for the current canonical state.
+The runtime should not produce contradictory interpretations such as:
 
-If an event is invalid:
+    runtime state says A
+    history says B
+    canonical event record says C
 
-    EVENT
-      |
-      v
-    STATE VALIDATION
-      |
-      X
-    REJECTED
-
-Regression validation confirms that rejected state events do not mutate:
+VRP regression coverage therefore tests consistency between:
 
 - canonical state;
 - accepted transition history;
@@ -388,628 +346,823 @@ Regression validation confirms that rejected state events do not mutate:
 
 ---
 
-# 17. Terminal State Recovery Boundary
+## 15. Rejected Work Must Not Enter Canonical Recovery History
 
-Terminal session states have dedicated regression coverage.
+A critical boundary is:
 
-Validated terminal states include:
+    REJECTED
+       !=
+    RECORDED AS CANONICALLY ACCEPTED
+
+Engineering validation previously identified an ordering defect where a current-lifetime but state-invalid event could enter canonical EventLog history before final state-machine rejection.
+
+The admission order was corrected.
+
+Regression coverage now verifies:
+
+    REJECTED EVENT
+
+    STATE_DELTA=0
+    HISTORY_DELTA=0
+    CANONICAL_EVENT_DELTA=0
+
+and:
+
+    ACCEPTED EVENT
+
+    STATE_DELTA=EXPECTED
+    HISTORY_DELTA=1
+    CANONICAL_EVENT_DELTA=1
+
+This boundary is important during both normal operation and recovery.
+
+---
+
+## 16. Terminal States
+
+Recovery must distinguish between legitimate recovery and unsupported resurrection.
+
+Terminal states include:
 
     SESSION_CLOSED
-
-and:
-
     SESSION_FAILED
 
-Attempts to apply unsupported resurrection transitions were rejected.
+Dedicated validation exercised the supported event surface against terminal sessions.
 
-The validation exercised the supported event surface against terminal states and confirmed that rejected attempts did not modify canonical state or accepted history.
+Invalid resurrection attempts were rejected without changing:
 
-This prevents ordinary event delivery from silently resurrecting a terminal session.
+- canonical state;
+- accepted transition history;
+- canonical event history.
 
----
+The property is:
 
-# 18. Explicit Recovery vs Accidental Resurrection
+    TERMINAL STATE
+         +
+    ORDINARY INVALID WORK
+         |
+         X
+    NO RESURRECTION
 
-VRP distinguishes:
-
-    EXPLICIT VALID RECOVERY
-
-from:
-
-    ACCIDENTAL RESURRECTION
-
-A runtime recovery operation must follow the accepted lifecycle contract.
-
-Historical, stale, invalid, or unauthorized work is not treated as recovery merely because it would move a session toward an active state.
+This does not prohibit an explicitly supported recovery path.
 
 ---
 
-# 19. Authority Failure
+## 17. Explicit Recovery vs Accidental Resurrection
 
-Transport recovery and authority recovery are separate concerns.
+VRP treats these as different operations.
 
-A working network path does not automatically establish valid authority.
+Explicit recovery:
 
-VRP authority validation has exercised:
+    TERMINAL / RECOVERY-ELIGIBLE CONDITION
+                |
+                v
+    SUPPORTED RECOVERY PATH
+                |
+                v
+    VALIDATED TRANSITION
 
-- authorized transitions;
-- unauthorized transitions;
-- stale authority;
-- authority rollback;
-- restart races;
-- authority recovery.
+Accidental resurrection:
 
-This prevents connectivity from being treated as equivalent to canonical ownership.
-
----
-
-# 20. Unauthorized Recovery Attempt
-
-A validated authority scenario exercised a migration request from an entity without the required current authority.
-
-Observed result:
-
-    REQUESTER=node-X
-    RESULT=REJECTED
-
-A valid authority path subsequently performed the accepted transition.
-
-Observed result:
-
-    AUTHORIZED_TRANSITION=ACCEPTED
-
-This demonstrates that recovery remains subject to authority validation.
-
----
-
-# 21. Authority Generation Recovery
-
-Authority lineage uses explicit generation progression.
-
-A validated flow observed:
-
-    INITIAL_GENERATION=1
-
-followed by an accepted authority transition:
-
-    FINAL_GENERATION=2
-
-Stale generation information was not treated as equivalent to the current authority state.
-
----
-
-# 22. Authority Rollback
-
-VRP validation includes authority rollback attempts.
-
-The expected behavior is:
-
-    CURRENT AUTHORITY
+    TERMINAL STATE
+          +
+    STALE / INVALID ORDINARY EVENT
           |
-          +---- stale authority
-          |          |
-          |          X
-          |       REJECTED
-          |
-          +---- valid current transition
-                     |
-                     v
-                  ACCEPTED
+          X
+       REJECTED
 
-Rollback resistance is part of preserving canonical authority lineage during recovery.
+This distinction prevents failure handling from becoming an implicit bypass around lifecycle rules.
 
 ---
 
-# 23. Restart and Recovery Races
+## 18. Duplicate Session Creation During Recovery
 
-Distributed recovery may involve multiple observations arriving around the same restart boundary.
+Recovery may race with session creation or recreation.
 
-VRP has been exercised against restart and authority-race scenarios.
+A duplicate creation request must not silently produce competing canonical state.
 
-Validation has included:
+Dedicated regression coverage verifies that duplicate creation does not create an additional canonical session authority or contradictory canonical history.
 
-- stale authority after restart;
-- contradictory observations;
-- delayed historical authority;
-- competing recovery information.
+Expected result:
 
-The objective is preservation of one accepted canonical lineage.
+    EXISTING CANONICAL SESSION
+            +
+    DUPLICATE CREATE
+            |
+            X
+    NO COMPETING CANONICAL SESSION
 
 ---
 
-# 24. Canonical History During Failure
+## 19. Authority During Failure
 
-A runtime failure must not make canonical history ambiguous.
+Transport availability and canonical authority remain separate during failure and recovery.
 
-VRP regression coverage verifies the relationship:
+The following implication is invalid:
 
-    accepted event
-        ->
-    canonical state transition
-        ->
-    canonical history update
+    NEW TRANSPORT REACHABLE
+            =>
+    NEW TRANSPORT AUTHORIZED
+
+A replacement path may be usable while the actor attempting a canonical transition remains unauthorized.
+
+VRP validation explicitly tests this distinction.
+
+---
+
+## 20. Unauthorized Recovery Attempt
+
+A representative authority scenario verifies:
+
+    UNAUTHORIZED TRANSITION=REJECTED
+
+while a valid authorized transition can produce:
+
+    AUTHORIZED TRANSITION=ACCEPTED
+
+This matters because failover mechanisms frequently operate precisely when topology and connectivity are changing.
+
+Recovery must not convert topology change into implicit authority.
+
+---
+
+## 21. Authority Generation
+
+Accepted authority progression follows canonical lineage.
+
+A representative progression is:
+
+    GENERATION 1
+        |
+        v
+    VALID AUTHORITY TRANSITION
+        |
+        v
+    GENERATION 2
+
+Once newer authority has been accepted, historical authority must not silently become current again.
+
+---
+
+## 22. Authority Rollback
+
+Recovery scenarios include attempts to reuse stale authority.
+
+Expected behavior:
+
+    STALE AUTHORITY
+         |
+         X
+      REJECTED
 
 and:
 
-    rejected event
-        ->
-    no canonical state transition
-        ->
-    no canonical history update
+    AUTHORITY ROLLBACK
+         |
+         X
+      REJECTED
 
-This property remains important during failure and recovery because invalid inputs are more likely to appear around transition boundaries.
-
----
-
-# 25. Duplicate Creation During Recovery
-
-Recovery or retry logic may attempt to create a session that already exists.
-
-VRP has dedicated duplicate-create regression coverage.
-
-The validated objective is preservation of:
-
-- current lifecycle identity;
-- canonical state;
-- accepted history.
-
-A duplicate creation attempt must not silently create competing canonical authority.
+This protects canonical authority lineage across failure and recovery boundaries.
 
 ---
 
-# 26. Recovery Event Atomicity
+## 23. Restart and Recovery Races
 
-Canonical acceptance has dedicated atomicity regression coverage.
+Restart conditions can create overlap between:
 
-For a valid accepted event:
+- previous authority;
+- new authority;
+- delayed work;
+- transport recovery;
+- runtime reconstruction.
 
-    state delta = expected
-    history delta = exactly one
-    canonical event delta = exactly one
+VRP has exercised restart-oriented authority races and canonical recovery scenarios.
 
-For a rejected event:
+The validated objective is not that restarts are invisible.
 
-    state delta = zero
-    history delta = zero
-    canonical event delta = zero
-
-This helps prevent partial recovery transitions.
+It is that stale or contradictory authority does not become current merely because execution restarted.
 
 ---
 
-# 27. Runtime Pressure
+## 24. Fail-Closed Recovery
 
-Failure recovery has also been exercised under non-ideal runtime conditions.
+Unknown or invalid recovery context should not default to acceptance.
 
-Validation includes scenarios involving:
+Representative behavior is:
 
-- latency spikes;
+    MISSING LIFETIME CONTEXT -> REJECT
+
+    STALE LIFETIME          -> REJECT
+
+    REPLAY                   -> REJECT
+
+    INVALID STATE           -> REJECT
+
+    UNAUTHORIZED AUTHORITY   -> REJECT
+
+This is the fail-closed recovery model.
+
+---
+
+## 25. Runtime Pressure During Recovery
+
+Real recovery rarely occurs under ideal network conditions.
+
+VRP validation has therefore included conditions such as:
+
+- latency variation;
 - jitter;
 - packet reordering;
 - congestion;
 - repeated migration;
-- resource pressure.
+- temporary connectivity loss.
 
-The objective is to determine whether canonical continuity remains preserved or failure remains contained under pressure.
+The expected outcome is not perfect delivery.
 
----
-
-# 28. Jitter
-
-Jitter can alter packet arrival timing without representing a true session identity change.
-
-VRP pressure validation has exercised jitter conditions while monitoring continuity behavior.
-
-The session model does not use temporary timing variation as automatic proof that a new session identity is required.
+The expected outcome is preservation of the tested canonical invariants or contained failure.
 
 ---
 
-# 29. Latency Spikes
+## 26. Jitter
 
-Temporary latency increases can cause delayed work to arrive near or after state transitions.
+Jitter can change event arrival timing and expose assumptions about ordering.
 
-Latency-oriented validation is therefore relevant to:
+VRP pressure validation exercises variable timing while observing whether canonical state remains coherent.
 
-- stale-event handling;
-- ordering;
-- migration;
-- recovery;
-- timeout interactions.
-
-VRP has been exercised under latency pressure with continuity invariants monitored.
+A jitter event does not automatically authorize stale or reordered work.
 
 ---
 
-# 30. Packet Reordering
+## 27. Latency Spikes
 
-Packet and event reordering is a normal distributed-systems condition.
+Large latency changes may cause historical work to arrive after the runtime has already progressed.
 
-VRP validation has exercised reordered delivery.
+This makes latency pressure relevant to lifecycle isolation.
 
-The runtime is expected to distinguish valid current work from work that has become stale or invalid due to canonical state progression.
+The required property remains:
 
----
+    LATE
+      !=
+    CURRENT
 
-# 31. Congestion
-
-Congestion can combine:
-
-- delay;
-- reordering;
-- duplication;
-- temporary reachability degradation.
-
-VRP pressure validation has included congestion-oriented scenarios to evaluate whether canonical state remains coherent under those conditions.
+unless the operation independently satisfies current admission requirements.
 
 ---
 
-# 32. Resource-Bounded Recovery
+## 28. Reordering
 
-Recovery mechanisms must not assume unlimited resources.
+Packet or event reordering is expected in distributed communication systems.
 
-VRP has undergone resource-bounded validation across repeated execution cycles.
+VRP does not rely on arrival order alone as proof of canonical validity.
 
-A recorded validation exercised thousands of runtime cycles while checking preservation and containment properties.
+Reordered work remains subject to:
 
-The purpose is to detect recovery behavior that works only when resource pressure is absent.
+- lifecycle validation;
+- state validation;
+- replay validation;
+- authority validation where applicable.
 
 ---
 
-# 33. Concurrency During Recovery
+## 29. Congestion
 
-Recovery operations may overlap with:
+Congestion may increase latency, loss, duplication or recovery pressure.
 
-- path changes;
+Congestion does not change the canonical admission contract.
+
+A deployment may experience degraded performance while still preserving state correctness.
+
+Performance degradation and canonical corruption are therefore reported separately.
+
+---
+
+## 30. Concurrency During Recovery
+
+Recovery can overlap with:
+
+- session activity;
 - delayed work;
-- session operations;
-- transport activity;
-- authority observations.
+- path changes;
+- packet processing;
+- authority operations.
 
-VRP regression testing includes concurrent execution scenarios and repeated race-detector qualification.
+VRP includes concurrency-oriented regression testing for these classes.
 
-The objective is to detect concurrency-dependent mutation of canonical state.
+A deterministic concurrency scenario has completed:
 
----
-
-# 34. Deterministic Concurrency Validation
-
-A deterministic concurrency validation was repeated:
-
-    1,000 times
+    1000 repeated executions
 
 with consistent successful results.
 
-This does not prove that every possible scheduler ordering has been exhausted.
+Selected regression families have also been exercised under Go race detection.
 
-It provides evidence that the exercised concurrency scenario remains stable across repeated execution.
+This provides engineering evidence for the tested concurrency scenarios.
 
----
-
-# 35. Race Detection
-
-Selected VRP regression scenarios are repeatedly executed using Go race detection.
-
-Recent boundary and recovery-related tests have been executed tens or hundreds of times depending on the qualification scenario.
-
-Race detection is used as an additional engineering control rather than as the sole proof of correctness.
+It does not exhaustively prove every possible scheduler interleaving.
 
 ---
 
-# 36. Long Network Turbulence
+## 31. Long-Duration Turbulence
 
-VRP has been exercised during extended periods of network instability.
+VRP has been exercised under prolonged network instability rather than only short failure pulses.
 
-Validation has included:
+Recorded engineering validation includes approximately one hour of network turbulence with repeated transitions and an extended link-off period.
 
-- repeated connectivity changes;
-- repeated transport transitions;
-- extended link interruption;
-- recovery after prolonged disruption.
-
-A recorded long-turbulence scenario ran for approximately one hour with repeated network changes and included an extended link-off period.
-
-The tested continuity properties remained preserved under the recorded scenario.
+The objective is to expose failures that may require accumulated runtime history or repeated recovery to appear.
 
 ---
 
-# 37. Long-Duration Runtime Validation
+## 32. Extended Runtime Validation
 
-VRP has also been exercised using a week-scale validation harness.
+Long-duration validation has also included repeated runtime cycles and week-scale harness execution.
 
-The harness repeatedly evaluated multiple runtime invariants across successive cycles.
+These runs help detect:
 
-The recorded run completed repeated cycles without an observed canonical continuity failure.
+- accumulated state errors;
+- delayed-work interactions;
+- resource-growth problems;
+- repeated recovery defects;
+- long-lived history inconsistencies.
 
-Long-duration validation remains an ongoing process.
-
----
-
-# 38. Application-Level Continuity
-
-VRP has been exercised with application traffic during network transition.
-
-A recorded application-oriented validation included a device moving between network connectivity paths while continuity behavior was observed.
-
-Application continuity depends on both:
-
-- VRP runtime behavior; and
-- application-specific timeout and recovery behavior.
-
-VRP therefore does not claim that every application will respond identically to the same network interruption.
+They are not a claim of unlimited-duration correctness.
 
 ---
 
-# 39. Evidence During Recovery
+## 33. Application Continuity
 
-Recovery validation produces evidence intended to make the observed outcome inspectable.
+VRP session continuity and application continuity are related but must be reported separately.
 
-Depending on the scenario, evidence may include:
+A result can legitimately be:
 
-- timestamps;
-- environment identity;
-- source revision;
-- event observations;
-- canonical summaries;
-- hashes;
-- manifests;
-- final verdicts.
+    VRP_SESSION_CONTINUITY=PASS
+    APPLICATION_CONTINUITY=FAIL
 
-This allows a recovery claim to be tied to a specific evaluated execution.
+For example, an application may enforce a timeout shorter than the transport outage.
+
+Likewise:
+
+    VRP_SESSION_CONTINUITY=FAIL
+    APPLICATION_RECONNECTED=YES
+
+would not prove VRP continuity merely because the application recovered independently.
+
+This separation is required for meaningful deployment evidence.
 
 ---
 
-# 40. Evidence Integrity Failure
+## 34. Evidence During Failure
 
-Validation has included modification of evidence inputs after execution.
+Important failure scenarios should preserve enough context to reconstruct what was observed.
 
-The purpose is to confirm that a verification system does not blindly accept internally inconsistent evidence.
+Depending on the validation, evidence may include:
 
-Tested modifications have included changes to:
+    UTC
+    SOURCE REVISION
+    SOURCE TREE
+    ENVIRONMENT
+    SCENARIO
+    OBSERVATIONS
+    COUNTERS
+    CANONICAL SUMMARY
+    MANIFEST
+    INTEGRITY INFORMATION
+    VERDICT
+
+The purpose is not to generate large logs for their own sake.
+
+The purpose is to connect a reported recovery result to a specific engineering execution.
+
+---
+
+## 35. Evidence Integrity
+
+Recovery evidence has value only if inconsistent modification can be detected.
+
+VRP validation has included deliberate modification of evidence artifacts.
+
+Tested modifications include changes to:
 
 - event evidence;
 - summary information;
 - manifest-bound data;
 - historical evidence.
 
-Inconsistent evidence was detected in the corresponding tested scenarios.
+The corresponding verification paths detected inconsistencies in the exercised scenarios.
 
 ---
 
-# 41. Historical Rewrite Rejection
+## 36. Historical Rewrite
 
-Recovery evidence must not permit historical state to be silently rewritten after the fact.
+A recovery narrative should not be silently replaceable by a contradictory reconstructed history.
 
-VRP historical-integrity validation has exercised modifications to established evidence history.
+Historical integrity validation therefore tests whether previously established evidence can be rewritten without detection.
 
-The tested verifier detected inconsistent historical reconstruction.
+Recorded validation has rejected inconsistent historical rewrites.
 
-This provides an additional validation boundary around recovery claims.
+This is an evidence-integrity property.
 
----
-
-# 42. Independent Recovery Verification
-
-Recovery outcomes can be evaluated through public validation surfaces without requiring disclosure of protected runtime implementation details.
-
-An evaluator can focus on questions such as:
-
-    Did transport disappear?
-
-    Was recovery observed?
-
-    Was session identity preserved?
-
-    Was stale work rejected?
-
-    Was replay rejected?
-
-    Was authority lineage preserved?
-
-    Was canonical history internally consistent?
-
-    Did evidence verification pass?
-
-This keeps validation focused on externally relevant guarantees.
+It should not be confused with formal proof of every internal runtime transition.
 
 ---
 
-# 43. Failure Containment
+## 37. Independent Verification
 
-Not every failure can or should result in immediate recovery.
+Selected failure and recovery evidence can be checked separately from the runtime execution that originally generated it.
 
-Some conditions should instead be contained.
+Depending on the exposed scenario, verification may inspect:
+
+- artifact consistency;
+- counters;
+- lifecycle identity;
+- migration outcome;
+- replay/stale rejection;
+- authority progression;
+- historical consistency;
+- final verdict derivation.
+
+The boundary is:
+
+    INDEPENDENT EVIDENCE VERIFICATION
+
+not:
+
+    INDEPENDENT SOURCE-CODE AUDIT
+
+and not:
+
+    COMPLETE FORMAL VERIFICATION
+
+These are different claims.
+
+---
+
+## 38. Recovery Failure Is a Valid Result
+
+A validation system should not be designed so that every scenario eventually prints PASS.
+
+If a required invariant fails, the useful result is the failure itself.
 
 Examples include:
 
-- invalid lifecycle operations;
-- unauthorized authority transitions;
-- stale historical work;
-- replay;
-- contradictory evidence.
+    SESSION_IDENTITY_CHANGED_UNEXPECTEDLY
 
-For these conditions, rejection is the correct recovery behavior.
+    STALE_WORK_ACCEPTED
 
-Therefore:
+    REPLAY_ACCEPTED
 
-> **Successful recovery sometimes means refusing to continue an invalid transition.**
+    INVALID_EVENT_ENTERED_CANONICAL_HISTORY
 
----
+    AUTHORITY_ROLLBACK_ACCEPTED
 
-# 44. Fail-Closed Recovery
+    RECOVERY_FAILED
 
-VRP recovery follows the same fail-closed principle as canonical admission.
+    EVIDENCE_VERIFICATION_FAILED
 
-If required lifecycle or authority information is invalid, the runtime should reject the operation rather than guess that it is current.
-
-Validated examples include:
-
-    missing lifecycle identity -> REJECTED
-
-    stale lifecycle identity -> REJECTED
-
-    stale incarnation -> REJECTED
-
-    unauthorized authority -> REJECTED
-
-    invalid transition -> REJECTED
-
-    replay -> REJECTED
+Such results should block the affected claim until understood.
 
 ---
 
-# 45. Recovery Validation Matrix
+## 39. Defects Found Through Recovery Validation
 
-Current public validation status:
+The VRP engineering process has intentionally retained regression coverage for defects discovered during validation.
 
-    Physical transport interruption        VALIDATED
+Examples of boundaries hardened through this process include:
 
-    Transport recovery                     VALIDATED
+- canonical event admission ordering;
+- mutable EventLog exposure;
+- managed-session mutable aliasing;
+- event metadata isolation;
+- relay-list isolation;
+- cross-lifetime trace observability.
 
-    Transport replacement                  VALIDATED
+The relevant engineering process is:
 
-    Repeated migration                     VALIDATED
+    DEFECT
+      |
+      v
+    REPRODUCTION
+      |
+      v
+    CORRECTION
+      |
+      v
+    REGRESSION TEST
+      |
+      v
+    REQUALIFICATION
 
-    Wi-Fi / alternative path transition    VALIDATED
+A past defect does not prove present correctness.
 
-    Path migration                         VALIDATED
-
-    Rebinding-oriented continuity          VALIDATED
-
-    Runtime recovery                       VALIDATED
-
-    Historical stale-work rejection        VALIDATED
-
-    Multi-incarnation isolation            VALIDATED
-
-    Replay rejection                       VALIDATED
-
-    Replay flooding                        VALIDATED
-
-    Duplicate delivery                     VALIDATED
-
-    Invalid transition rejection           VALIDATED
-
-    Terminal resurrection rejection        VALIDATED
-
-    Duplicate-create isolation             VALIDATED
-
-    Authority transition validation        VALIDATED
-
-    Unauthorized authority rejection       VALIDATED
-
-    Authority rollback rejection           VALIDATED
-
-    Authority recovery lineage             VALIDATED
-
-    Restart-race handling                  VALIDATED
-
-    Canonical event atomicity              VALIDATED
-
-    Runtime pressure                       VALIDATED UNDER TESTED CONDITIONS
-
-    Concurrency                            VALIDATED UNDER TESTED CONDITIONS
-
-    Race-detector qualification            VALIDATED UNDER TESTED CONDITIONS
-
-    Long network turbulence                VALIDATED UNDER TESTED CONDITIONS
-
-    Long-duration runtime                  VALIDATED UNDER TESTED CONDITIONS
-
-    Evidence integrity                     VALIDATED
-
-    Historical evidence integrity          VALIDATED
-
-    Independent verification               VALIDATED
+A reproduced defect followed by retained regression coverage makes the corrected boundary testable.
 
 ---
 
-# 46. Deployment Interpretation
+## 40. Relationship to QUIC and Multipath Systems
 
-The accumulated failure and recovery evidence supports controlled deployment evaluation.
+Transport migration itself is not unique to VRP.
 
-It demonstrates that VRP has been exercised against failures affecting:
+QUIC provides connection migration mechanisms.
 
-- transport;
-- path;
-- lifecycle;
-- authority;
-- ordering;
-- replay;
-- concurrency;
-- evidence.
+Multipath TCP can maintain communication across multiple paths.
 
-A deployment must still perform environment-specific qualification.
+VPN and tunnel systems may support roaming or endpoint updates.
 
-The correct interpretation is:
+Applications may reconnect or fail over independently.
 
-    FAILURE MODEL:               IMPLEMENTED
+VRP recovery validation is focused on a different combination of properties:
 
-    RECOVERY MODEL:              IMPLEMENTED
+    TRANSPORT CHANGE
+          +
+    LOGICAL SESSION IDENTITY
+          +
+    LIFECYCLE IDENTITY
+          +
+    CANONICAL STATE
+          +
+    AUTHORITY LINEAGE
+          +
+    STALE / REPLAY REJECTION
+          +
+    RECOVERY EVIDENCE
 
-    FAILURE VALIDATION:          EXTENSIVE
+The question is therefore not merely:
 
-    REAL NETWORK INTERRUPTION:   VALIDATED
+> Can traffic move to another path?
 
-    REPLAY / STALE REJECTION:    VALIDATED
+The more specific VRP question is:
 
-    AUTHORITY RECOVERY:          VALIDATED
-
-    CONTROLLED DEPLOYMENT:       READY FOR EVALUATION
-
-    ENVIRONMENT QUALIFICATION:   REQUIRED
-
----
-
-# 47. What Is Not Claimed
-
-This validation does not claim:
-
-- that physical connectivity can never disappear;
-- that every outage produces zero application impact;
-- that all transports recover identically;
-- that every network topology has been tested;
-- that every possible failure combination has been exhausted;
-- that every application has identical timeout behavior;
-- that validation eliminates the need for operational monitoring;
-- that one successful environment automatically certifies another.
-
-The results describe the scenarios actually exercised and the architectural properties supported by those results.
+> What happens to session lifecycle, canonical state and authority while that path change or recovery occurs?
 
 ---
 
-# 48. Overall Assessment
+## 41. Relationship to Application Reconnect
 
-VRP has been subjected to substantially more than nominal-path validation.
+Application reconnect often solves a different problem.
 
-The runtime has been exercised across:
+A typical reconnect model may be:
 
-- real transport interruption;
-- repeated migration;
-- network turbulence;
-- stale historical work;
-- replay;
-- invalid lifecycle operations;
-- authority changes;
-- recovery races;
-- concurrency;
-- long-duration execution;
-- evidence modification.
+    CONNECTION LOST
+          |
+          v
+    CREATE NEW CONNECTION
+          |
+          v
+    APPLICATION RESTORES STATE
 
-The accumulated results support the following public conclusion:
+That can be entirely appropriate.
 
-> **VRP has an implemented and repeatedly validated failure/recovery model in which session continuity is treated independently from transport availability, while stale, replayed, unauthorized, and invalid work is rejected rather than silently promoted into canonical state.**
+VRP is concerned with cases where a logical continuity object should survive replacement of its underlying transport and where historical work, authority and canonical state must remain explicitly controlled.
 
-This failure and recovery model provides part of the engineering basis for controlled deployment evaluation.
+These approaches are not automatically mutually exclusive.
 
 ---
 
-## Public Scope
+## 42. Recovery Validation Matrix
 
-This document describes externally relevant failure conditions, recovery guarantees, and observed validation outcomes.
+Current public engineering coverage can be summarized as:
 
-Protected runtime implementation details are intentionally outside its scope.
+| Failure / Recovery Property | Status |
+|---|---|
+| Physical transport interruption | Exercised |
+| Transport recovery | Validated under tested conditions |
+| Transport replacement | Validated |
+| Repeated migration | Validated |
+| Network transition | Exercised |
+| Historical-lifetime rejection | Validated |
+| Replay rejection | Validated |
+| Duplicate-delivery containment | Validated |
+| Invalid-transition rejection | Validated |
+| Canonical admission atomicity | Validated |
+| Duplicate-create isolation | Validated |
+| Terminal resurrection rejection | Validated |
+| Authority separation | Validated |
+| Stale authority rejection | Validated |
+| Authority rollback rejection | Validated |
+| Restart-oriented authority recovery | Validated under tested conditions |
+| Runtime pressure | Validated under tested scenarios |
+| Concurrency | Validated under tested scenarios |
+| Long-duration turbulence | Exercised |
+| Evidence integrity | Validated |
+| Historical rewrite detection | Validated |
+| Independent evidence verification | Validated |
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Engineering Documentation — October 2026**
+## 43. What Recovery Validation Does Not Prove
+
+The current evidence does not establish:
+
+    ZERO PACKET LOSS
+
+    ZERO APPLICATION INTERRUPTION
+
+    ZERO RECOVERY LATENCY
+
+    CORRECTNESS ON EVERY NETWORK
+
+    CORRECTNESS FOR EVERY TRANSPORT
+
+    EXHAUSTIVE CONCURRENCY COVERAGE
+
+    UNLIMITED SESSION SCALE
+
+    UNLIMITED RUNTIME DURATION
+
+    COMPLETE FORMAL VERIFICATION
+
+    UNIVERSAL PRODUCTION READINESS
+
+Those require separate qualification.
+
+---
+
+## 44. Deployment Interpretation
+
+A target deployment should reproduce the failure scenarios relevant to its actual environment.
+
+A useful progression is:
+
+    BASELINE
+       |
+       v
+    TRANSPORT INTERRUPTION
+       |
+       v
+    OBSERVE FAILURE
+       |
+       v
+    PROVIDE / RESTORE TRANSPORT
+       |
+       v
+    OBSERVE RECOVERY
+       |
+       v
+    INJECT STALE / REPLAY CONDITIONS
+       |
+       v
+    VERIFY CANONICAL STATE
+       |
+       v
+    VERIFY AUTHORITY
+       |
+       v
+    VERIFY EVIDENCE
+
+The exact scenarios should match the deployment rather than mechanically reproducing every laboratory test.
+
+---
+
+## 45. Failure Classification for Deployment
+
+Deployment reports should distinguish at least three classes.
+
+### Transport failure
+
+Example:
+
+    TRANSPORT_REACHABILITY=LOST
+
+This does not automatically mean session failure.
+
+### Session continuity failure
+
+Example:
+
+    SESSION_IDENTITY_UNEXPECTEDLY_REPLACED
+
+This affects the VRP continuity claim.
+
+### Application failure
+
+Example:
+
+    APPLICATION_TIMEOUT
+
+This may occur even while VRP session continuity remains preserved.
+
+Separating these layers prevents misleading PASS/FAIL reporting.
+
+---
+
+## 46. Acceptance Conditions
+
+For a recovery scenario to support a positive VRP continuity result, the relevant evidence should demonstrate:
+
+- the failure actually occurred;
+- the expected replacement or recovery opportunity existed;
+- logical session identity behaved as specified;
+- stale work did not become current;
+- replay did not become new canonical work;
+- invalid state transitions remained rejected;
+- authority remained coherent where applicable;
+- canonical state and history remained consistent;
+- the result can be associated with the tested build and environment.
+
+A scenario does not need every property if some are outside its scope.
+
+Its scope should be explicit.
+
+---
+
+## 47. Failure Conditions
+
+A recovery scenario should be considered failed with respect to the affected invariant if evidence demonstrates behavior such as:
+
+    HISTORICAL WORK ACCEPTED AS CURRENT
+
+    REPLAY ACCEPTED AS NEW CANONICAL WORK
+
+    INVALID TRANSITION ACCEPTED
+
+    REJECTED EVENT ENTERED CANONICAL HISTORY
+
+    UNAUTHORIZED AUTHORITY ACCEPTED
+
+    STALE AUTHORITY RESTORED AS CURRENT
+
+    UNEXPECTED SESSION REPLACEMENT
+
+    CANONICAL STATE / HISTORY DIVERGENCE
+
+    REQUIRED RECOVERY NOT ACHIEVED
+
+These outcomes require investigation before the corresponding guarantee can be relied upon.
+
+---
+
+## 48. Engineering Interpretation
+
+The strongest useful interpretation of the current recovery evidence is not:
+
+> VRP survives every network failure.
+
+It is:
+
+> **VRP has been deliberately exercised against multiple transport, lifecycle, replay, authority and recovery failure modes, and the defined canonical invariants were preserved under the recorded successful scenarios.**
+
+That is a bounded engineering claim.
+
+It can be independently challenged by reproducing equivalent scenarios against the relevant public validation boundary.
+
+---
+
+## 49. Current Status
+
+    REAL TRANSPORT INTERRUPTION       EXERCISED
+
+    TRANSPORT REPLACEMENT             VALIDATED
+
+    REPEATED MIGRATION                VALIDATED
+
+    SESSION LIFETIME ISOLATION        VALIDATED
+
+    STALE-WORK REJECTION              VALIDATED
+
+    REPLAY REJECTION                  VALIDATED
+
+    CANONICAL RECOVERY                VALIDATED
+
+    TERMINAL STATE PROTECTION         VALIDATED
+
+    AUTHORITY RECOVERY                VALIDATED
+
+    AUTHORITY ROLLBACK REJECTION      VALIDATED
+
+    CONCURRENCY SCENARIOS             VALIDATED
+
+    RUNTIME PRESSURE                  VALIDATED
+
+    LONG-DURATION TURBULENCE          EXERCISED
+
+    EVIDENCE INTEGRITY                VALIDATED
+
+    INDEPENDENT VERIFICATION          VALIDATED
+
+    TARGET ENVIRONMENT QUALIFICATION  REQUIRED
+
+---
+
+## Conclusion
+
+VRP recovery is not defined as hiding transport failure.
+
+It is defined around preservation of higher-level invariants while transport, path, lifecycle or authority conditions change.
+
+The current implementation has engineering evidence showing that, under the tested scenarios:
+
+- transport can disappear and later recover;
+- supported transport replacement can preserve logical session identity;
+- repeated migration can occur without redefining the session;
+- historical lifetime work can remain rejected;
+- replay can remain rejected;
+- invalid transitions can remain outside canonical history;
+- terminal sessions resist unsupported resurrection;
+- stale or unauthorized authority can remain rejected;
+- recovery can preserve canonical lineage;
+- evidence can remain independently checkable.
+
+The remaining deployment question is environment-specific:
+
+> **Do those same required invariants remain preserved under the actual failures, transports, timing conditions, applications and operational constraints of the target system?**
+
+That question should be answered by deliberate failure injection and evidence, not assumption.
