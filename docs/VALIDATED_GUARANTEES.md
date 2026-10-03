@@ -1,939 +1,1218 @@
 # VRP Validated Guarantees
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Validated Guarantees  
-**Status:** Public  
-**Validation Scope:** Engineering evidence available as of October 2026
+**Status:** Public engineering guarantees  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document defines the externally relevant properties of Veil Routing Protocol (VRP) that are supported by engineering validation.
+This document defines the VRP properties that currently have implementation-backed validation.
 
-The purpose is to distinguish:
+It is deliberately written as a list of bounded engineering guarantees rather than a broad security or reliability claim.
 
-- architectural intent;
-- implemented behavior;
-- validated behavior;
-- deployment-specific requirements.
+For each guarantee, the relevant questions are:
 
-Only public guarantees and observable validation results are described here.
+1. What property is expected?
+2. What failure would violate it?
+3. What has actually been exercised?
+4. What limitation remains?
 
-Protected runtime implementation details are outside the scope of this document.
+The word **validated** means:
 
----
+> The current implementation has been exercised against one or more scenarios specifically intended to violate the stated property, and the expected invariant was preserved under those tested conditions.
 
-# 1. Validation Principle
-
-VRP follows a simple engineering rule:
-
-> **A guarantee should be supported by observable evidence.**
-
-Architectural statements alone are not treated as sufficient validation.
-
-Where practical, VRP properties are exercised through:
-
-- deterministic regression tests;
-- repeated execution;
-- concurrency testing;
-- race-detector testing;
-- failure injection;
-- transport interruption;
-- migration stress;
-- stale-work scenarios;
-- replay scenarios;
-- authority-transition scenarios;
-- long-duration execution;
-- evidence verification.
-
-The objective is not to prove that failure is impossible.
-
-The objective is to demonstrate that defined invariants remain preserved or fail in a controlled manner under the conditions exercised.
+It does not mean universal proof.
 
 ---
 
-# 2. Guarantee: Session Is Not Transport
+## 2. Guarantee Model
 
-The primary VRP architectural guarantee is:
+VRP validation separates several properties that are often incorrectly collapsed into one statement such as "the connection survived."
 
-> **Session ≠ Transport**
+The main categories are:
 
-Session identity is not defined by the currently active:
+```text
+SESSION IDENTITY
 
-- socket;
-- network interface;
-- path;
-- relay;
-- transport instance.
+LIFETIME IDENTITY
 
-Transport may change while the higher-level session remains the same continuity object.
+TRANSPORT IDENTITY
+
+CANONICAL STATE
+
+AUTHORITY
+
+REPLAY / DUPLICATION
+
+RECOVERY
+
+EVIDENCE
+```
+
+Success in one category does not automatically establish success in another.
+
+For example:
+
+```text
+successful transport migration
+    !=
+proof of replay resistance
+```
+
+and:
+
+```text
+valid evidence hash
+    !=
+proof of runtime correctness
+```
+
+This separation is intentional.
+
+---
+
+## 3. Guarantee: Session Is Not Transport
+
+### Property
+
+A VRP session is not identified solely by its current transport.
+
+Changing the active transport does not, by itself, create a new logical session.
+
+Conceptually:
+
+```text
+SESSION S
+   |
+TRANSPORT A
+```
+
+may become:
+
+```text
+SESSION S
+   |
+TRANSPORT B
+```
+
+without requiring:
+
+```text
+SESSION S -> SESSION S2
+```
+
+### Validation
 
 This property has been exercised through:
 
 - transport interruption;
 - transport replacement;
-- Wi-Fi/mobile transitions;
 - path migration;
-- relay migration;
 - network rebinding;
 - repeated migration;
-- transport recovery.
+- recovery.
 
-**Validation status:**
+A recorded stress scenario completed 1,000 migrations while preserving session identity.
 
-    VALIDATED
+### Failure condition
+
+This guarantee would be violated if a supported transport change unexpectedly caused the runtime to replace or merge logical session identity.
+
+### Status
+
+```text
+SESSION_TRANSPORT_SEPARATION=VALIDATED
+```
 
 ---
 
-# 3. Guarantee: Transport Replacement Does Not Require Session Replacement
+## 4. What This Guarantee Does Not Mean
 
-A transport failure does not automatically require destruction of the logical session.
+`Session ≠ Transport` does not mean that transport-independent identity is unique to VRP.
 
-VRP has been exercised under physical and simulated transport changes.
+Existing technologies provide related mechanisms, including:
 
-Observed scenarios include:
+- QUIC connection migration;
+- Multipath TCP;
+- tunnel/VPN endpoint roaming;
+- application-level reconnect and failover.
 
-- transport becoming unavailable;
-- alternative transport becoming available;
-- migration to replacement transport;
-- restoration of transport reachability.
+VRP's claim is narrower:
 
-A physical validation observed:
+> The current VRP runtime preserves its own logical session identity across the supported transport-change scenarios that have been tested.
 
-    TRANSPORT_REACHABILITY=LOST
+The broader VRP model additionally associates that session with explicit lifecycle, canonical-state and authority rules.
+
+---
+
+## 5. Guarantee: Transport Failure Does Not Automatically Destroy Session Identity
+
+### Property
+
+Loss of the current transport is not automatically equivalent to destruction of the logical session.
+
+### Validation
+
+A physical network interruption produced observable transport loss followed by recovery.
+
+The recorded outage was approximately 41.6 seconds.
+
+The duration itself is not the guarantee.
+
+The relevant observation is:
+
+```text
+TRANSPORT_REACHABILITY=LOST
+```
 
 followed by:
 
-    TRANSPORT_REACHABILITY=RECOVERED
+```text
+TRANSPORT_REACHABILITY=RECOVERED
+```
 
-with an observed interruption of approximately:
+while logical session continuity remained distinguishable from physical connectivity.
 
-    41.6 seconds
+### Failure condition
 
-The continuity model remained distinct from transport reachability.
+The guarantee would fail if loss of a replaceable transport necessarily destroyed the session under a scenario where continuity was expected.
 
-**Validation status:**
+### Status
 
-    VALIDATED
-
----
-
-# 4. Guarantee: Repeated Migration Can Preserve Session Identity
-
-VRP migration behavior has been tested repeatedly rather than only through one successful transition.
-
-A recorded validation completed:
-
-    1,000 transport migrations
-
-while preserving session identity.
-
-Additional migration validation includes:
-
-- path replacement;
-- relay changes;
-- transport collapse;
-- transport recovery;
-- degraded network conditions.
-
-**Validation status:**
-
-    VALIDATED
+```text
+TRANSPORT_FAILURE_SEPARATION=VALIDATED_UNDER_TESTED_CONDITIONS
+```
 
 ---
 
-# 5. Guarantee: Session Lifetimes Are Distinguishable
+## 6. Guarantee: Session Lifetimes Are Distinguishable
 
-Reusing a logical session identifier does not make historical work current again.
+### Property
 
-VRP maintains lifecycle identity capable of distinguishing different lifetimes of the same logical session.
+The same logical session identifier may exist across multiple lifetimes.
 
-Validation has exercised:
+Those lifetimes are not interchangeable.
 
-- session recreation;
-- repeated reincarnation;
-- delayed historical operations;
-- historical migration requests;
-- current-lifetime operations.
+VRP represents lifecycle identity using information that includes:
 
-A dedicated validation produced:
+```text
+LifetimeEpoch
+Incarnation
+```
 
-    Sequential incarnations:           128
-    Historical delayed operations:     127
-    Historical operations accepted:    0
-    Historical operations rejected:    127
+The conceptual current-lifetime identity is therefore stronger than `SessionID` alone.
 
-The current lifetime remained unchanged.
+### Failure condition
 
-**Validation status:**
+A historical operation must not become current merely because:
 
-    VALIDATED
+```text
+historical.SessionID == current.SessionID
+```
 
----
+### Status
 
-# 6. Guarantee: Stale Historical Work Is Rejected
-
-Historical work from an earlier lifecycle must not automatically receive authority over the current lifecycle.
-
-Validation confirms that stale work can be rejected even when:
-
-- the logical session identifier is the same;
-- a new incarnation is active;
-- the operation would otherwise be valid for the current session state.
-
-This distinction is important.
-
-The rejection is based on lifecycle validity, not merely whether an operation name is valid in the current state.
-
-**Validation status:**
-
-    VALIDATED
+```text
+LIFETIME_IDENTITY=IMPLEMENTED_AND_VALIDATED
+```
 
 ---
 
-# 7. Guarantee: Replay Is Rejected
+## 7. Guarantee: Historical Work Is Rejected
 
-VRP includes replay resistance as a runtime property.
+### Property
 
-Validation has exercised:
+Work associated with an older session lifetime must not silently mutate the current lifetime.
+
+### Validation
+
+A dedicated scenario created:
+
+```text
+TOTAL_INCARNATIONS=128
+```
+
+for one logical session identity.
+
+After incarnation 128 became current, operations associated with the 127 historical incarnations were presented concurrently.
+
+Result:
+
+```text
+HISTORICAL_OPERATIONS=127
+HISTORICAL_ACCEPTED=0
+HISTORICAL_REJECTED=127
+CURRENT_LIFETIME_PRESERVED=YES
+```
+
+The current state was intentionally selected so that the operation type could otherwise be acceptable.
+
+This distinguishes lifecycle rejection from simple state-machine rejection.
+
+### Failure condition
+
+Any historical operation becoming accepted solely because it targets the same logical SessionID would violate this guarantee.
+
+### Status
+
+```text
+STALE_LIFETIME_REJECTION=VALIDATED
+```
+
+---
+
+## 8. Guarantee: Replay Does Not Become New Canonical Work
+
+### Property
+
+Previously observed work must not become a new canonical operation merely because it is delivered again.
+
+### Validation
+
+Replay validation includes:
 
 - duplicate delivery;
-- stale sequence delivery;
-- repeated replay;
+- stale delivery;
 - replay flooding;
-- historical lifecycle replay;
-- evidence replay scenarios.
+- historical-lifetime replay.
 
-A recorded live validation rejected:
+One recorded run produced:
 
-    9,999 replay attempts
+```text
+REPLAY_ATTEMPTS=9999
+REPLAY_REJECTED=9999
+REPLAY_ACCEPTED=0
+```
 
-while preserving session identity.
+### Failure condition
 
-Separate validation has exercised thousands of replay attempts without allowing them to become accepted current work.
+A replay that creates a new canonical state transition or duplicate canonical execution would violate this guarantee.
 
-**Validation status:**
+### Status
 
-    VALIDATED
-
----
-
-# 8. Guarantee: Invalid State Transitions Are Rejected
-
-VRP uses an explicit canonical session lifecycle.
-
-An event that is invalid for the current canonical state is rejected rather than silently accepted.
-
-Validation verifies that invalid state events do not alter:
-
-- canonical session state;
-- accepted transition history;
-- canonical event history.
-
-**Validation status:**
-
-    VALIDATED
+```text
+REPLAY_REJECTION=VALIDATED_UNDER_TESTED_CONDITIONS
+```
 
 ---
 
-# 9. Guarantee: Rejected Events Do Not Become Canonical History
+## 9. Guarantee: Invalid State Transitions Are Rejected
 
-A rejected event must not appear as though it were successfully accepted.
+### Property
 
-Recent regression validation specifically verifies:
+An event that is invalid for the current canonical state does not become an accepted state transition.
 
-    rejected state event
-            |
-            v
-    canonical state unchanged
-            |
-            v
-    transition history unchanged
-            |
-            v
-    canonical EventLog unchanged
+### Validation
 
-This maintains consistency between:
+State-machine regression coverage exercises valid and invalid events across session lifecycle states.
 
-- accepted state;
-- transition history;
-- canonical event history.
+Terminal-state testing additionally exercises the supported event alphabet against terminal states.
 
-**Validation status:**
+### Failure condition
 
-    VALIDATED
+An invalid event changing canonical state would violate this guarantee.
+
+### Status
+
+```text
+STATE_TRANSITION_VALIDATION=VALIDATED
+```
 
 ---
 
-# 10. Guarantee: Accepted Canonical Events Are Recorded Once
+## 10. Guarantee: Rejection Is Canonically Atomic
 
-The inverse property is also validated.
+Rejecting an operation must mean more than "the final state happened to remain unchanged."
 
-When a valid event is accepted:
+### Property
 
-- the expected state transition occurs;
-- accepted history advances;
-- canonical event history advances exactly once.
+For a rejected state operation:
 
-This creates a consistent relationship between canonical admission and canonical evidence.
+```text
+STATE_DELTA=0
+HISTORY_DELTA=0
+CANONICAL_EVENT_DELTA=0
+```
 
-**Validation status:**
+For an accepted operation:
 
-    VALIDATED
+```text
+STATE_DELTA=EXPECTED
+HISTORY_DELTA=1
+CANONICAL_EVENT_DELTA=1
+```
 
----
+### Why this matters
 
-# 11. Guarantee: Duplicate Creation Does Not Create Additional Canonical Authority
+A runtime could reject an operation at the state-machine level while accidentally recording it as accepted historical evidence.
 
-Duplicate session creation has dedicated regression coverage.
+That would create disagreement between state and history.
 
-A duplicate create operation is not allowed to silently create additional canonical lifecycle authority or contaminate accepted event history.
+### Validation history
 
-Validation confirms preservation of:
+Engineering testing found an ordering defect in this boundary: a current-lifetime but state-invalid event could enter the canonical EventLog before final state-machine rejection.
 
-- existing canonical state;
-- existing lifecycle identity;
-- canonical history.
+The admission order was corrected.
 
-**Validation status:**
+Dedicated regression coverage now verifies both acceptance and rejection behavior.
 
-    VALIDATED
+### Status
 
----
-
-# 12. Guarantee: Terminal Session States Resist Resurrection
-
-Terminal lifecycle behavior has been explicitly exercised.
-
-Validation has covered attempts to apply the complete supported session-event surface against terminal states.
-
-Tested terminal states include:
-
-    SESSION_CLOSED
-
-and:
-
-    SESSION_FAILED
-
-Invalid resurrection attempts were rejected without mutation of:
-
-- canonical state;
-- accepted transition history;
-- canonical event history.
-
-**Validation status:**
-
-    VALIDATED
+```text
+CANONICAL_ACCEPTANCE_ATOMICITY=VALIDATED
+```
 
 ---
 
-# 13. Guarantee: Canonical Admission Fails Closed
+## 11. Guarantee: Duplicate Session Creation Does Not Create Competing Canonical State
 
-Canonical event admission requires valid lifecycle context.
+### Property
 
-Validation verifies:
+Attempting to create an already-existing logical session must not silently create an additional competing canonical lifecycle.
 
-    unbound event
-        -> REJECTED
+### Validation
 
-    stale lifetime
-        -> REJECTED
+Dedicated duplicate-create regression coverage verifies preservation of the existing canonical session and its associated history.
 
-    stale incarnation
-        -> REJECTED
+### Failure condition
 
-    correctly bound current-lifetime event
-        -> ACCEPTED when otherwise valid
+Duplicate creation producing additional current authority or contradictory canonical history would violate this guarantee.
 
-Missing lifecycle context is not interpreted as implicit current authority.
+### Status
 
-**Validation status:**
-
-    VALIDATED
+```text
+DUPLICATE_CREATE_ISOLATION=VALIDATED
+```
 
 ---
 
-# 14. Guarantee: Unauthorized Authority Migration Is Rejected
+## 12. Guarantee: Terminal States Resist Unsupported Resurrection
 
-VRP distinguishes connectivity from authority.
+### Property
 
-A node becoming reachable does not automatically give that node authority to perform canonical migration.
+Terminal states are absorbing with respect to unsupported ordinary lifecycle events.
 
-A validated authority scenario demonstrated:
+Validated terminal states include:
 
-    Current authority: node-A
+```text
+SESSION_CLOSED
+SESSION_FAILED
+```
 
-    Migration requested by node-X
-    Result: REJECTED
+### Validation
 
-    Migration requested through valid authority
-    Result: ACCEPTED
+The supported session-event surface was exercised against terminal sessions.
 
-**Validation status:**
+Invalid resurrection attempts produced no mutation of:
 
-    VALIDATED
+```text
+canonical state
+transition history
+canonical event history
+```
 
----
+### Important distinction
 
-# 15. Guarantee: Authority Generation Advances Canonically
+This does not prohibit an explicitly supported recovery mechanism.
 
-Authority migration validation has exercised generation changes.
+It separates:
 
-One validated flow observed:
-
-    Initial generation: 1
-
-followed by a valid authority transition resulting in:
-
-    Final generation: 2
-
-The runtime preserved the expected authority lineage.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 16. Guarantee: Stale Authority Is Rejected
-
-Authority validation has included attempts to reuse authority information that is no longer current.
-
-Validation scenarios include:
-
-- stale authority;
-- authority rollback;
-- restart races;
-- historical authority state.
-
-Stale authority does not automatically regain canonical ownership.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 17. Guarantee: Authority Recovery Preserves Lineage
-
-VRP authority validation has included recovery and restart scenarios.
-
-Engineering evidence has exercised:
-
-- authority failover;
-- authority recovery;
-- cross-region restart races;
-- contradictory authority observations;
-- stale authority resurrection attempts.
-
-The validated objective is preservation of one accepted canonical authority lineage.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 18. Guarantee: Read Operations Do Not Implicitly Become Canonical Writes
-
-Runtime boundary review has specifically examined whether values returned by read-oriented APIs can accidentally mutate canonical state.
-
-Validated isolation includes:
-
-- managed session representations;
-- canonical event-log views;
-- event metadata;
-- authority representations;
-- path-health collections;
-- relay collections.
-
-Where mutable exposure was identified, the boundary was corrected and regression coverage added.
-
-**Validation status:**
-
-    VALIDATED FOR REVIEWED SURFACES
-
----
-
-# 19. Guarantee: Managed Session Reads Are Detached
-
-Returned managed-session representations are detached from canonical session state.
-
-External modification of a returned representation does not directly modify the canonical runtime session.
-
-Validation includes isolation of:
-
-- session lifecycle identity;
-- session state representation;
-- transition history representation.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 20. Guarantee: Canonical EventLog Reads Are Isolated
-
-A caller receiving an EventLog representation must not be able to erase or append canonical events merely by modifying the returned read representation.
-
-Regression validation confirms that modifications to returned EventLog views do not directly modify canonical EventLog storage.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 21. Guarantee: Supported Event Metadata Is Isolated
-
-Event metadata associated with canonical history has dedicated isolation coverage.
-
-Caller-side modification of supported returned metadata values does not directly rewrite canonical event metadata.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 22. Guarantee: Path Health Reads Are Isolated
-
-Public path-health read operations have been evaluated for mutation isolation.
-
-Validated surfaces include:
-
-    Get
-    All
-    History
-
-Returned read representations do not provide an accidental direct mutation path into canonical path-health storage.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 23. Guarantee: Relay List Containers Are Isolated
-
-Returned relay collections use isolated container storage.
-
-Modification of a returned relay list does not directly rewrite the selector's internal relay collection.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 24. Guarantee: Runtime Transport Identity Is Explicit
-
-Transport objects are active runtime entities.
-
-VRP distinguishes:
-
-    collection isolation
+```text
+explicit recovery
+```
 
 from:
 
-    runtime object identity
+```text
+accidental resurrection by stale or invalid work
+```
 
-Returned transport-list containers are isolated while transport objects may intentionally preserve runtime identity where required.
+### Status
 
-This behavior has been explicitly classified and regression-tested.
-
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 25. Guarantee: Runtime Composition Identity Is Explicit
-
-VRP distinguishes read snapshots from intentional composition surfaces.
-
-Runtime manager and authority-manager accessors intentionally expose stable runtime composition identities.
-
-Regression validation confirms that this intentional sharing does not remove canonical lifecycle admission requirements.
-
-Observed behavior:
-
-    Manager identity:            intentionally shared
-    Authority identity:          intentionally shared
-    Unbound event:               rejected
-    Valid bound event:           accepted
-    Admission policy:            fail-closed
-
-**Validation status:**
-
-    VALIDATED
+```text
+TERMINAL_RESURRECTION_REJECTION=VALIDATED
+```
 
 ---
 
-# 26. Guarantee: Canonical Trace Preserves Lifecycle Identity
+## 13. Guarantee: Canonical Admission Fails Closed
 
-Cross-lifetime event traces must allow different session lifetimes to be distinguished.
+### Property
 
-Publicly relevant trace output includes lifecycle identity sufficient to distinguish historical events belonging to different incarnations.
+Incomplete, stale or invalid lifecycle context is not interpreted as implicit authorization.
 
-This prevents a same-session-ID history from becoming visually ambiguous across recreation.
+Representative behavior:
 
-**Validation status:**
+```text
+missing lifetime binding -> REJECTED
 
-    VALIDATED
+stale lifetime          -> REJECTED
 
----
+stale incarnation       -> REJECTED
 
-# 27. Guarantee: Recovery Can Return a Session to Active State
+invalid transition      -> REJECTED
 
-Recovery scenarios have exercised movement through degraded or migration-related states back to active operation.
+replay                  -> REJECTED
+```
 
-A validated authority/migration scenario concluded with:
+### Failure condition
 
-    FINAL_SESSION_STATE=SESSION_ACTIVE
+Unknown or stale lifecycle context being silently treated as current would violate this guarantee.
 
-after accepted migration and recovery.
+### Status
 
-**Validation status:**
-
-    VALIDATED
-
----
-
-# 28. Guarantee: Runtime Pressure Does Not Automatically Break Canonical Continuity
-
-VRP has been exercised under:
-
-- jitter;
-- latency variation;
-- packet reordering;
-- congestion;
-- repeated migration;
-- transport interruption;
-- resource pressure.
-
-The validation objective is preservation or controlled containment of canonical invariants.
-
-Recorded pressure-validation scenarios have completed with continuity preserved or failure contained according to the tested scenario.
-
-**Validation status:**
-
-    VALIDATED UNDER TESTED CONDITIONS
+```text
+CANONICAL_ADMISSION=FAIL_CLOSED
+```
 
 ---
 
-# 29. Guarantee: Concurrent Execution Is Regression Tested
+## 14. Guarantee: Connectivity Is Not Authority
 
-VRP concurrency validation includes:
+### Property
 
-- concurrent session activity;
-- concurrent path operations;
+A reachable node, path or transport does not automatically gain authority to alter canonical session state.
+
+This distinction is fundamental:
+
+```text
+REACHABLE != AUTHORIZED
+```
+
+### Validation
+
+Authority scenarios have exercised both unauthorized and authorized transitions.
+
+A representative result is:
+
+```text
+UNAUTHORIZED_TRANSITION=REJECTED
+AUTHORIZED_TRANSITION=ACCEPTED
+```
+
+### Status
+
+```text
+CONNECTIVITY_AUTHORITY_SEPARATION=VALIDATED
+```
+
+---
+
+## 15. Guarantee: Authority Progression Is Ordered
+
+### Property
+
+Accepted authority progression follows a canonical lineage.
+
+Historical authority does not automatically regain current status.
+
+A representative validated transition observed:
+
+```text
+GENERATION=1
+    |
+    v
+GENERATION=2
+```
+
+### Validation
+
+Engineering scenarios include:
+
+- valid authority transition;
+- stale authority;
+- rollback attempts;
+- restart races;
+- authority recovery.
+
+### Failure condition
+
+An older authority generation silently replacing newer accepted authority would violate this guarantee.
+
+### Status
+
+```text
+AUTHORITY_LINEAGE=VALIDATED_UNDER_TESTED_CONDITIONS
+```
+
+---
+
+## 16. Guarantee: Recovery Does Not Disable Admission Rules
+
+### Property
+
+Recovery remains subject to lifecycle, replay and authority validation.
+
+The following do not become valid merely because the runtime is recovering:
+
+```text
+stale work
+replayed work
+invalid transition
+unauthorized authority
+```
+
+### Validation
+
+Recovery scenarios have been exercised together with:
+
+- transport failure;
+- migration;
+- stale work;
+- authority changes;
+- restart conditions.
+
+### Status
+
+```text
+RECOVERY_ADMISSION=VALIDATED_UNDER_TESTED_CONDITIONS
+```
+
+---
+
+## 17. Guarantee: Current State and Historical Lineage Are Distinct Views
+
+VRP exposes two different concepts that should not be confused.
+
+### Current state
+
+Answers:
+
+> What is authoritative now?
+
+### Historical lineage
+
+Answers:
+
+> What accepted lifecycle events occurred across the session's history?
+
+Historical lineage may contain events associated with multiple session lifetimes.
+
+Current-state access is scoped to the current lifetime.
+
+This distinction is intentional.
+
+It allows history to remain observable without treating historical events as current authority.
+
+---
+
+## 18. Guarantee: Lifecycle Identity Is Present in Canonical Trace Output
+
+### Property
+
+When a trace spans more than one lifetime, lifecycle identity must remain externally distinguishable.
+
+### Validation
+
+Runtime trace output was hardened to include lifecycle information equivalent to:
+
+```text
+lifetime_epoch
+incarnation
+```
+
+Dedicated regression coverage verifies that cross-lifetime traces preserve this distinction.
+
+### Failure condition
+
+A trace that merges multiple lifetimes into an ambiguous sequence without lifecycle identity would weaken reviewability and violate the tested observability property.
+
+### Status
+
+```text
+TRACE_LIFETIME_OBSERVABILITY=VALIDATED
+```
+
+---
+
+## 19. Guarantee: Managed Session Reads Do Not Directly Mutate Canonical State
+
+### Property
+
+Obtaining a managed-session representation through a read-oriented API must not provide an unintended path to rewrite the canonical session.
+
+### Validation history
+
+Engineering testing demonstrated that returned managed-session objects could previously expose live mutable state.
+
+The boundary was corrected by returning detached representations.
+
+Regression coverage verifies that caller-side mutation does not directly alter canonical session state.
+
+### Status
+
+```text
+MANAGED_SESSION_READ_ISOLATION=VALIDATED
+```
+
+---
+
+## 20. Guarantee: Canonical EventLog Reads Are Isolated
+
+### Property
+
+Reading canonical event history must not provide a direct capability to erase or append canonical runtime history.
+
+### Validation history
+
+Testing reproduced a mutable EventLog exposure where caller-side mutation could affect canonical stored history.
+
+The read boundary was corrected.
+
+Regression coverage verifies isolation for the supported EventLog read surface.
+
+### Status
+
+```text
+EVENTLOG_READ_ISOLATION=VALIDATED
+```
+
+---
+
+## 21. Guarantee: Supported Event Metadata Reads Are Isolated
+
+### Property
+
+Returned event metadata must not provide an unintended direct mutation path into canonical stored metadata.
+
+### Validation
+
+A separate regression identified nested top-level metadata/data aliasing at the event-log boundary.
+
+The supported boundary was corrected and tested.
+
+### Limitation
+
+This guarantee applies to the supported production value shapes covered by the runtime boundary.
+
+It is not a claim that arbitrary recursively nested user-defined object graphs are automatically deep-cloned.
+
+### Status
+
+```text
+EVENT_METADATA_ISOLATION=VALIDATED_FOR_SUPPORTED_VALUES
+```
+
+---
+
+## 22. Guarantee: Path-Health Reads Are Isolated
+
+### Property
+
+Reading path-health state does not provide an unintended write path into the monitor's canonical stored values.
+
+Reviewed surfaces include:
+
+```text
+Get
+All
+History
+```
+
+### Status
+
+```text
+PATH_HEALTH_READ_ISOLATION=VALIDATED
+```
+
+---
+
+## 23. Guarantee: Relay List Container Reads Are Isolated
+
+### Property
+
+Mutating a returned relay-list container must not rewrite the selector's internal list.
+
+### Validation history
+
+Testing identified a live-slice exposure at this boundary.
+
+The implementation was corrected and regression coverage added.
+
+### Status
+
+```text
+RELAY_LIST_ISOLATION=VALIDATED
+```
+
+---
+
+## 24. Guarantee: Transport Registry Container and Transport Identity Have Explicit Semantics
+
+Not every returned runtime object should automatically be deep-cloned.
+
+Transport objects represent active runtime entities.
+
+The validated boundary is therefore:
+
+```text
+returned list container = detached
+
+transport object identity = intentionally preserved
+```
+
+This distinction is explicit and regression-tested.
+
+### Status
+
+```text
+TRANSPORT_REGISTRY_LIST_SEMANTICS=VALIDATED
+```
+
+---
+
+## 25. Guarantee: Runtime Composition Uses Intentional Shared Identity
+
+The main runtime exposes composition components whose identity is intentionally shared.
+
+Validated behavior includes:
+
+```text
+runtime.Manager()   -> stable manager identity
+
+runtime.Authority() -> stable authority-manager identity
+```
+
+This is not treated as a detached read API.
+
+The security boundary instead remains canonical admission.
+
+A direct unbound canonical event is rejected even though the manager identity is intentionally accessible through runtime composition.
+
+### Status
+
+```text
+RUNTIME_COMPOSITION_IDENTITY=EXPLICIT_AND_VALIDATED
+```
+
+---
+
+## 26. Guarantee: Concurrency Does Not Automatically Break the Tested Invariants
+
+### Validation
+
+Concurrency-oriented tests cover scenarios including:
+
+- multiple sessions;
+- delayed historical work;
 - packet identifier generation;
-- historical delayed work;
-- repeated session reincarnation;
-- deterministic concurrency scenarios.
+- repeated reincarnation;
+- path activity;
+- recovery.
 
-Selected tests are repeatedly executed with Go race detection.
+A deterministic concurrency scenario completed:
 
-A deterministic concurrency scenario was repeated:
-
-    1,000 times
+```text
+1000 repeated executions
+```
 
 with consistent successful results.
 
-**Validation status:**
+Selected regression families have also been exercised under Go race detection.
 
-    VALIDATED UNDER TESTED CONDITIONS
+### Limitation
+
+This does not prove every possible scheduler interleaving.
+
+### Status
+
+```text
+CONCURRENCY_INVARIANTS=VALIDATED_UNDER_TESTED_SCENARIOS
+```
 
 ---
 
-# 30. Guarantee: Packet Identifier Generation Has Concurrency Coverage
+## 27. Guarantee: Packet Identifier Generation Has Been Exercised Concurrently
 
-Concurrent packet-identifier behavior has dedicated regression coverage.
+A dedicated concurrency validation generated:
 
-A recorded validation generated:
-
-    4,096 packet identifiers
+```text
+4096 packet identifiers
+```
 
 with:
 
-    duplicate identifiers: 0
-    sequence gaps:         0
+```text
+DUPLICATES=0
+GAPS=0
+```
 
-under the tested concurrency scenario.
+under the tested scenario.
 
-**Validation status:**
-
-    VALIDATED UNDER TESTED CONDITIONS
+This result applies to that validation scope and is not presented as a universal throughput benchmark.
 
 ---
 
-# 31. Guarantee: Runtime Behavior Is Tested Beyond Short Executions
+## 28. Guarantee: Defined Invariants Survive Tested Runtime Pressure
 
-VRP validation includes extended runtime execution.
+VRP has been exercised under:
 
-Testing has included:
+- latency variation;
+- jitter;
+- packet reordering;
+- congestion;
+- repeated migration;
+- temporary transport loss.
 
-- repeated cycles;
+The validation objective is not to claim perfect packet delivery under arbitrary failure.
+
+The objective is that the defined canonical invariants remain preserved or failure remains contained.
+
+### Status
+
+```text
+PRESSURE_INVARIANTS=VALIDATED_UNDER_TESTED_SCENARIOS
+```
+
+---
+
+## 29. Guarantee: Long-Duration Behavior Has Been Exercised
+
+Recorded validation includes:
+
 - prolonged network turbulence;
-- extended transport interruption;
-- repeated transport transitions;
-- week-scale validation harness execution.
+- repeated network transitions;
+- extended link interruption;
+- repeated runtime cycles;
+- week-scale harness execution.
 
-The recorded long-duration harness repeatedly preserved the evaluated invariants.
+These runs increase confidence against failures that require accumulated state or extended execution to appear.
 
-**Validation status:**
+They do not establish an unlimited-duration guarantee.
 
-    VALIDATED UNDER TESTED CONDITIONS
+### Status
+
+```text
+LONG_DURATION_EXECUTION=VALIDATED_UNDER_RECORDED_RUNS
+```
 
 ---
 
-# 32. Guarantee: Evidence Integrity Is Checked
+## 30. Guarantee: Evidence Modification Can Be Detected
 
-VRP validation artifacts are not treated as trustworthy merely because they exist.
+### Property
 
-Evidence validation has exercised modifications to:
+Modification of evidence inputs should not silently remain equivalent to the original validated evidence.
 
-- recorded events;
-- summaries;
-- manifests;
-- hashes;
+### Validation
+
+Engineering scenarios have deliberately modified:
+
+- event evidence;
+- summary information;
+- manifest-bound data;
 - historical evidence.
 
-Inconsistent evidence was detected by the corresponding verification process in the tested scenarios.
+The tested verification paths detected resulting inconsistencies.
 
-**Validation status:**
+### Status
 
-    VALIDATED
-
----
-
-# 33. Guarantee: Historical Evidence Rewrite Can Be Detected
-
-Historical integrity validation has exercised attempts to modify previously established evidence history.
-
-The validation system detected and rejected inconsistent historical reconstruction in the tested scenarios.
-
-**Validation status:**
-
-    VALIDATED
+```text
+EVIDENCE_MODIFICATION_DETECTION=VALIDATED
+```
 
 ---
 
-# 34. Guarantee: Evidence Can Be Independently Verified
+## 31. Guarantee: Historical Evidence Rewrite Can Be Detected
 
-VRP includes public verification surfaces intended to allow an evaluator to check exposed evidence without access to protected runtime implementation details.
+### Property
 
-Independent verification has been exercised against generated evidence bundles.
+Previously established evidence history must not be silently replaceable by an inconsistent reconstructed history.
 
-The design objective is:
+### Validation
 
-> **The evaluator verifies observable guarantees rather than trusting an unverifiable claim from the implementation owner.**
+Historical rewrite scenarios were executed and detected by the corresponding verification workflow.
 
-**Validation status:**
+### Status
 
-    VALIDATED
-
----
-
-# 35. Guarantee: Validation Is Bound to Engineering Context
-
-Engineering evidence should identify enough context to determine what was actually evaluated.
-
-Recorded validation commonly includes information such as:
-
-- source revision;
-- source tree identity;
-- timestamp;
-- runtime environment;
-- test result;
-- evidence hashes;
-- final verdict.
-
-This improves reproducibility and prevents unrelated builds from being silently represented as the evaluated build.
-
-**Validation status:**
-
-    IMPLEMENTED IN VALIDATION WORKFLOW
+```text
+HISTORICAL_EVIDENCE_INTEGRITY=VALIDATED
+```
 
 ---
 
-# 36. Guarantee: Failure Is Treated as an Engineering Signal
+## 32. Guarantee: Selected Evidence Can Be Verified Independently of Runtime Execution
 
-VRP validation is not designed to hide failed tests.
+### Property
 
-During engineering qualification, discovered boundary defects have been:
+An evidence verifier can evaluate selected exposed validation properties separately from the runtime execution that originally generated the evidence.
 
-1. reproduced;
-2. isolated;
-3. corrected;
-4. regression-tested;
-5. repeatedly re-evaluated.
+### What this can include
 
-This process has been used for canonical admission and mutable read-boundary issues.
+Depending on the scenario:
 
-The presence of a discovered defect is therefore treated as input to hardening rather than as evidence to suppress.
+- artifact consistency;
+- manifest consistency;
+- counters;
+- lifecycle identity;
+- replay/stale rejection results;
+- migration result;
+- authority progression;
+- historical consistency;
+- final verdict derivation.
 
----
+### What it does not mean
 
-# 37. Validation Summary
+```text
+independent evidence verification
+    !=
+independent source audit
+```
 
-The current public guarantee matrix is:
+and:
 
-    Session ≠ Transport                         VALIDATED
+```text
+independent evidence verification
+    !=
+formal proof of runtime correctness
+```
 
-    Transport replacement continuity           VALIDATED
+### Status
 
-    Repeated migration                          VALIDATED
-
-    Session lifetime isolation                  VALIDATED
-
-    Historical stale-work rejection             VALIDATED
-
-    Replay rejection                            VALIDATED
-
-    Invalid transition rejection                VALIDATED
-
-    Rejected-event history isolation            VALIDATED
-
-    Accepted-event atomicity                     VALIDATED
-
-    Duplicate-create isolation                  VALIDATED
-
-    Terminal-state resurrection rejection       VALIDATED
-
-    Fail-closed lifecycle admission              VALIDATED
-
-    Unauthorized authority rejection            VALIDATED
-
-    Authority generation continuity             VALIDATED
-
-    Stale authority rejection                   VALIDATED
-
-    Authority recovery lineage                  VALIDATED
-
-    Managed-session read isolation              VALIDATED
-
-    Canonical EventLog isolation                VALIDATED
-
-    Event metadata isolation                    VALIDATED
-
-    Path-health read isolation                  VALIDATED
-
-    Relay-list isolation                        VALIDATED
-
-    Transport identity semantics                VALIDATED
-
-    Runtime composition semantics               VALIDATED
-
-    Lifecycle-aware event trace                 VALIDATED
-
-    Runtime recovery                            VALIDATED
-
-    Runtime pressure behavior                   VALIDATED UNDER TESTED CONDITIONS
-
-    Concurrency behavior                        VALIDATED UNDER TESTED CONDITIONS
-
-    Long-duration behavior                      VALIDATED UNDER TESTED CONDITIONS
-
-    Evidence integrity                          VALIDATED
-
-    Historical evidence integrity               VALIDATED
-
-    Independent evidence verification           VALIDATED
+```text
+INDEPENDENT_EVIDENCE_VERIFICATION=VALIDATED
+```
 
 ---
 
-# 38. Scope of These Guarantees
+## 33. Guarantee: Evidence Is Bound to Engineering Context
 
-A validation result applies to the conditions exercised by that validation.
+Important validation runs can include identifiers such as:
 
-It should not automatically be interpreted as proof of behavior under every possible:
+```text
+UTC
+source revision
+source tree
+runtime version
+environment
+scenario
+```
 
-- operating system;
-- network;
-- application;
-- transport;
-- hardware platform;
-- deployment topology;
-- traffic profile;
-- failure combination;
-- scale.
+This provides a relationship between the reported result and the engineering state that produced it.
 
-Environment-specific deployment qualification remains necessary.
+A build identifier does not prove correctness.
 
----
-
-# 39. What These Guarantees Do Not Mean
-
-These guarantees do not mean:
-
-- networks cannot fail;
-- packets cannot be lost;
-- physical disconnection disappears;
-- applications cannot time out;
-- unlimited scale has been demonstrated;
-- every transport has identical characteristics;
-- every possible implementation defect has been eliminated;
-- every deployment has already been certified.
-
-They describe properties supported by the current engineering evidence.
+It makes the result more precisely attributable and reproducible.
 
 ---
 
-# 40. Deployment Interpretation
+## 34. Defects Are Part of the Validation Record
 
-The validated guarantees provide the engineering basis for controlled deployment evaluation.
+Several useful guarantees in this document became stronger because testing first demonstrated that the previous boundary was insufficient.
 
-Current status:
+Examples include:
 
-    Architecture:                  IMPLEMENTED
-    Core continuity properties:   VALIDATED
-    Canonical admission:          VALIDATED
-    Lifetime isolation:           VALIDATED
-    Authority behavior:           VALIDATED
-    Recovery behavior:            VALIDATED
-    Evidence model:               VALIDATED
-    Controlled deployment:        READY FOR EVALUATION
-    Environment qualification:    REQUIRED
-    Universal certification:      NOT CLAIMED
+- canonical EventLog admission ordering;
+- mutable EventLog exposure;
+- managed-session mutable aliasing;
+- event metadata aliasing;
+- relay-list container exposure;
+- lifecycle ambiguity in trace output.
+
+The engineering process was:
+
+```text
+identify
+   |
+reproduce
+   |
+correct
+   |
+regression-test
+   |
+requalify
+```
+
+The existence of a past defect is not itself evidence of the current guarantee.
+
+The reproduced failure plus retained regression coverage is what makes the current boundary testable.
 
 ---
 
-# 41. Overall Statement
+## 35. Guarantees Are Scope-Bound
 
-The current VRP engineering record supports a concrete set of validated continuity properties.
+Every guarantee in this document should be interpreted as:
 
-The strongest public conclusion is not that VRP makes networks infallible.
+> **validated under the scenarios and implementation boundaries that were actually exercised.**
 
-It is that VRP has an implemented and repeatedly exercised model for preserving canonical session continuity while the transport underneath that session changes, fails, recovers, or is replaced.
+It should not be expanded into:
 
-That model is supported by engineering evidence covering:
+> **impossible to violate under every conceivable environment or future implementation.**
 
-- lifecycle isolation;
-- replay rejection;
-- migration;
-- authority;
-- canonical admission;
-- runtime recovery;
+This distinction applies especially to:
+
 - concurrency;
-- evidence integrity;
-- physical network interruption;
-- long-duration execution.
-
-These guarantees provide the technical basis for controlled pilot and deployment evaluation.
-
----
-
-## Public Scope
-
-This document describes externally relevant guarantees and their validation status.
-
-Protected runtime implementation details are intentionally outside its scope.
+- performance;
+- cryptography;
+- scale;
+- deployment configuration;
+- application behavior.
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Engineering Documentation — October 2026**
+## 36. Relationship to Formal Verification
+
+The current guarantees are based on engineering validation.
+
+Methods include:
+
+- unit and regression tests;
+- adversarial scenarios;
+- deterministic repetition;
+- race detection;
+- failure injection;
+- real network interruption;
+- long-duration execution;
+- evidence verification.
+
+Unless a specific artifact states otherwise, these guarantees are not claims of complete formal verification using systems such as TLA+, Coq, Lean or Isabelle.
+
+---
+
+## 37. Relationship to Existing Protocols
+
+Some individual VRP capabilities overlap with existing technologies.
+
+That is expected.
+
+Examples:
+
+```text
+QUIC             -> connection migration / connection identity mechanisms
+
+Multipath TCP    -> multiple path transport
+
+WireGuard-style
+roaming systems  -> endpoint changes
+
+Applications     -> reconnect / retry / failover logic
+```
+
+VRP should not be evaluated by claiming that these mechanisms do not exist elsewhere.
+
+The relevant VRP boundary is the combination of:
+
+```text
+logical session continuity
+        +
+explicit lifecycle identity
+        +
+canonical state admission
+        +
+authority lineage
+        +
+stale/replay rejection
+        +
+replaceable transport
+        +
+reviewable evidence
+```
+
+Whether that combination provides value for a particular system is an integration question, not something this document attempts to decide for the reader.
+
+---
+
+## 38. Compact Guarantee Matrix
+
+| Property | Current public status |
+|---|---|
+| Session / transport separation | Validated |
+| Physical transport-loss continuity | Validated under tested conditions |
+| Repeated migration | Validated |
+| Lifetime identity | Validated |
+| Historical-work rejection | Validated |
+| Replay rejection | Validated |
+| Invalid-transition rejection | Validated |
+| Canonical acceptance atomicity | Validated |
+| Duplicate-create isolation | Validated |
+| Terminal resurrection rejection | Validated |
+| Fail-closed admission | Validated |
+| Connectivity / authority separation | Validated |
+| Authority lineage | Validated under tested conditions |
+| Recovery admission | Validated under tested conditions |
+| Cross-lifetime trace observability | Validated |
+| Managed-session read isolation | Validated |
+| EventLog read isolation | Validated |
+| Supported event metadata isolation | Validated |
+| Path-health read isolation | Validated |
+| Relay-list isolation | Validated |
+| Transport-registry list semantics | Validated |
+| Runtime composition boundary | Validated |
+| Concurrency scenarios | Validated under tested conditions |
+| Evidence modification detection | Validated |
+| Historical evidence integrity | Validated |
+| Independent evidence verification | Validated |
+
+---
+
+## 39. What Is Not Guaranteed by This Document
+
+This document does not guarantee:
+
+```text
+zero packet loss
+
+zero application disruption
+
+zero runtime defects
+
+unlimited scalability
+
+identical behavior on every operating system
+
+correctness under every network topology
+
+correctness under every possible concurrency schedule
+
+automatic security of deployment credentials or hosts
+
+formal correctness of the entire implementation
+
+universal production readiness
+```
+
+Those require separate qualification.
+
+---
+
+## 40. Deployment Interpretation
+
+The guarantees documented here are sufficient to justify controlled integration evaluation.
+
+A target deployment should reproduce the guarantees relevant to its own environment rather than relying only on project-level results.
+
+The appropriate progression is:
+
+```text
+project validation
+       |
+       v
+target integration
+       |
+       v
+environment-specific failure tests
+       |
+       v
+evidence
+       |
+       v
+deployment decision
+```
+
+---
+
+## Conclusion
+
+The current VRP implementation has validation evidence for a defined set of continuity, lifecycle, canonical-state, authority, recovery and evidence-integrity properties.
+
+The strongest useful interpretation is not:
+
+> "VRP cannot fail."
+
+It is:
+
+> **VRP defines specific invariants around session continuity and canonical authority, and the current implementation has been deliberately exercised against failure conditions intended to violate those invariants.**
+
+Those guarantees remain bounded by the scenarios, builds and environments in which they are validated.
