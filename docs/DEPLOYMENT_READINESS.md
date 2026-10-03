@@ -1,746 +1,797 @@
 # VRP Deployment Readiness
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Deployment Readiness Assessment  
-**Status:** Public  
-**Assessment Date:** October 2026
+**Status:** Public engineering assessment  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document describes the current deployment-readiness status of Veil Routing Protocol (VRP).
+This document answers a narrow question:
 
-It is intended for engineering teams, infrastructure teams, technical evaluators, pilot organizations, and deployment reviewers assessing whether VRP is ready to move from validation into controlled operational environments.
+> **What does the current VRP engineering record justify deploying or evaluating today?**
 
-This document describes externally relevant capabilities, validation status, deployment expectations, and remaining qualification work.
+It is not a feature list and it is not a production certification.
 
-Protected runtime implementation details are outside its scope.
+The deployment position is derived from implemented behavior and validation results.
 
----
+Current position:
 
-# 1. Current Readiness Classification
-
-The current VRP engineering status is:
-
-> **READY FOR CONTROLLED PILOT AND DEPLOYMENT EVALUATION**
-
-This classification means that VRP has an implemented runtime, established architectural invariants, substantial regression coverage, failure-oriented validation, concurrency qualification, real network testing, and evidence-verification capabilities.
-
-It does not mean that VRP is universally certified for unrestricted deployment in every environment.
-
-A specific production deployment still requires environment-specific integration and qualification.
+> **VRP is ready for controlled integration and deployment evaluation. Production acceptance remains environment-specific.**
 
 ---
 
-# 2. Readiness Summary
+## 2. Readiness Summary
 
-Current engineering evidence supports the following status:
+```text
+Runtime implementation              ACTIVE
+Session / transport separation      VALIDATED
+Transport migration                 VALIDATED
+Lifetime isolation                  VALIDATED
+Replay rejection                    VALIDATED
+Canonical admission                 VALIDATED
+Authority progression               VALIDATED
+Recovery                            VALIDATED
+Concurrency scenarios               VALIDATED UNDER TESTED CONDITIONS
+Evidence verification               VALIDATED
+Real network interruption           EXERCISED
+Controlled integration              READY
+Environment qualification           REQUIRED
+Universal production certification  NOT CLAIMED
+```
 
-    Architecture implementation:          IMPLEMENTED
+`VALIDATED` in this document means that the property has implementation-backed regression or scenario evidence.
 
-    Session continuity model:             VALIDATED
-
-    Session / transport separation:       VALIDATED
-
-    Canonical session lifecycle:          VALIDATED
-
-    Transport migration:                  VALIDATED
-
-    Session lifetime isolation:           VALIDATED
-
-    Replay rejection:                     VALIDATED
-
-    Stale-work rejection:                 VALIDATED
-
-    Authority continuity:                 VALIDATED
-
-    Authority rollback rejection:         VALIDATED
-
-    Runtime recovery:                     VALIDATED
-
-    Canonical event admission:            VALIDATED
-
-    Canonical history isolation:          VALIDATED
-
-    Concurrency qualification:            VALIDATED
-
-    Race-detector qualification:          VALIDATED
-
-    Evidence integrity:                   VALIDATED
-
-    Independent evidence verification:    VALIDATED
-
-    Physical network interruption:        VALIDATED
-
-    Long-duration execution:              VALIDATED
-
-    Controlled deployment readiness:      READY
-
-    Universal production certification:   NOT CLAIMED
+It does not mean mathematically proven for every possible environment.
 
 ---
 
-# 3. What "Deployment Ready" Means for VRP
+## 3. What “Ready” Means
 
-For VRP, deployment readiness does not mean that every possible network, application, transport, operating system, topology, or failure condition has already been tested.
+For VRP, deployment readiness does **not** mean:
 
-It means that the fundamental runtime properties required to begin controlled deployment evaluation have engineering evidence behind them.
+```text
+all environments tested
+all applications qualified
+all failure combinations exhausted
+unlimited scale demonstrated
+formal verification complete
+```
 
-Those properties include:
+It means that the runtime has reached a point where an external integration can evaluate concrete continuity properties instead of evaluating only a design proposal.
 
-- stable session identity;
-- separation of session identity from transport identity;
-- canonical lifecycle enforcement;
-- transport replacement;
-- path migration;
-- runtime recovery;
-- replay rejection;
-- stale lifetime rejection;
-- authority validation;
-- canonical event integrity;
-- deterministic validation;
-- failure containment;
-- concurrency testing;
-- evidence generation;
-- independent verification.
+A controlled deployment should be able to test:
 
-This is the threshold required to move from architecture validation into real integration work.
-
----
-
-# 4. Session Continuity Readiness
-
-The primary VRP architectural requirement is:
-
-> **Session ≠ Transport**
-
-A session must not become equivalent to the transport currently carrying it.
-
-VRP validation has exercised continuity across:
-
-- transport loss;
-- transport replacement;
-- path migration;
-- relay migration;
-- network rebinding;
-- delayed historical work;
-- repeated migration;
-- runtime recovery.
-
-A physical transport interruption test observed:
-
-    TRANSPORT_REACHABILITY=LOST
-
-followed by:
-
-    TRANSPORT_REACHABILITY=RECOVERED
-
-The observed physical interruption was approximately:
-
-    41.6 seconds
-
-The continuity model remained separate from the failed transport.
-
-This distinction is fundamental to deployment readiness.
-
----
-
-# 5. Migration Readiness
-
-Transport and path migration have been exercised repeatedly.
-
-A recorded validation completed:
-
-    1,000 transport migrations
-
-while preserving session identity.
-
-Migration-oriented validation has included:
-
-- Wi-Fi to mobile transitions;
-- transport replacement;
-- path replacement;
-- relay changes;
-- transport collapse;
-- transport return;
-- degraded network conditions;
-- repeated migration cycles.
-
-This provides evidence that migration is not limited to a single demonstration path.
-
----
-
-# 6. Lifetime Isolation Readiness
-
-Long-running systems must handle delayed work from historical session lifetimes.
-
-VRP uses explicit lifecycle identity to distinguish current work from historical work.
-
-A dedicated validation exercised:
-
-    Sequential incarnations:             128
-    Historical delayed operations:       127
-    Historical operations accepted:      0
-    Historical operations rejected:      127
-
-The current lifetime remained unchanged by those historical operations.
-
-This is important for deployments where delayed, duplicated, reordered, or retried work may arrive after recovery or recreation.
-
----
-
-# 7. Replay Resistance Readiness
-
-VRP replay handling has been exercised through:
-
-- duplicate delivery;
-- stale sequence delivery;
-- replay-window testing;
-- historical lifetime replay;
-- replay flooding;
-- evidence replay validation.
-
-A recorded live validation rejected:
-
-    9,999 replay attempts
-
-while preserving session identity.
-
-Replay rejection is treated as a runtime invariant rather than an optional diagnostic feature.
-
----
-
-# 8. Authority Readiness
-
-VRP explicitly models authority separately from transport availability.
-
-Authority validation has included:
-
-- authorized migration;
-- unauthorized migration attempts;
-- authority generation advancement;
-- stale authority rejection;
-- authority rollback rejection;
-- restart races;
-- authority recovery.
-
-A validated failover scenario produced:
-
-    Initial relay:       relay-A
-    Initial path:        path-A
-    Initial generation:  1
-
-    Unauthorized migration:
-    REJECTED
-
-    Authorized migration:
-    ACCEPTED
-
-    Final relay:         relay-B
-    Final path:          path-B
-    Final generation:    2
-
-The session subsequently returned to:
-
-    SESSION_ACTIVE
-
-This demonstrates that connectivity changes and authority changes are not treated as equivalent events.
-
----
-
-# 9. Canonical State Readiness
-
-Deployment requires a runtime to distinguish accepted state from merely observed input.
-
-VRP maintains canonical session state and canonical event history.
-
-Recent qualification verifies:
-
-- accepted events enter canonical history exactly once;
-- rejected state events do not enter accepted canonical history;
-- invalid transitions are rejected;
-- duplicate creation does not silently create additional canonical authority;
-- stale lifetime work does not mutate the current session;
-- incomplete lifecycle identity fails closed.
-
-The intended invariant is:
-
-> **Rejected work must not become canonical history.**
-
----
-
-# 10. Canonical Read Isolation
-
-Read APIs must not unintentionally become write paths.
-
-VRP engineering review has examined mutable runtime boundaries including:
-
-- session representations;
-- event logs;
-- event metadata;
-- authority representations;
-- path-health data;
-- relay collections;
-- transport collections;
-- runtime composition surfaces.
-
-Where a read boundary was found to expose mutable canonical state, the boundary was corrected and regression-tested.
-
-Where runtime identity sharing was intentional, the behavior was explicitly classified and validated rather than incorrectly converted into snapshot semantics.
-
-This distinction is important for deployment stability.
-
----
-
-# 11. Fail-Closed Admission
-
-Canonical admission is designed to fail closed.
-
-Validation covers rejection of:
-
-- incomplete lifetime identity;
-- stale lifetime identity;
-- stale incarnation;
-- invalid state transitions;
-- duplicate creation;
-- unauthorized authority operations;
-- historical delayed work;
-- replayed work.
-
-The runtime does not intentionally convert missing validation context into implicit current authority.
-
----
-
-# 12. Concurrency Readiness
-
-VRP has been exercised under concurrent runtime activity.
-
-Qualification has included:
-
-- concurrent session operations;
-- concurrent path activity;
-- repeated session reincarnation;
-- concurrent historical work;
-- packet identifier generation;
-- deterministic concurrency validation;
-- race-detector execution.
-
-Selected regression scenarios have been executed repeatedly under Go race detection.
-
-A deterministic concurrency validation was repeated:
-
-    1,000 times
-
-with consistent successful outcomes.
-
-Concurrency qualification remains part of continuing development rather than a one-time milestone.
-
----
-
-# 13. Runtime Pressure Readiness
-
-VRP has been exercised under conditions including:
-
-- jitter;
-- latency variation;
-- packet reordering;
-- congestion;
-- repeated migration;
+- session establishment;
 - transport interruption;
-- resource pressure;
-- concurrent activity.
-
-These scenarios are important because continuity mechanisms that work only under ideal network conditions are insufficient for operational deployment.
-
-The validation objective is preservation or controlled containment of runtime invariants under pressure.
+- transport replacement;
+- migration;
+- stale-work rejection;
+- replay rejection;
+- authority behavior;
+- recovery;
+- evidence verification.
 
 ---
 
-# 14. Long-Duration Readiness
+## 4. What Is Being Deployed
 
-VRP validation has extended beyond short unit-test execution.
+VRP should be evaluated as a continuity runtime, not as a promise that the physical network will remain available.
 
-Engineering runs have included:
+The core distinction is:
 
-- repeated runtime cycles;
+```text
+SESSION
+   !=
+TRANSPORT
+```
+
+The session owns higher-level continuity.
+
+The transport provides current connectivity.
+
+A deployment may therefore observe:
+
+```text
+transport A
+    |
+    X
+transport unavailable
+    |
+transport B
+```
+
+while the logical session remains the same continuity object.
+
+That separation is necessary, but it is not sufficient by itself.
+
+VRP also validates the lifecycle and authority associated with the session.
+
+---
+
+## 5. Deployment-Relevant Invariants
+
+A deployment should treat the following as core acceptance properties.
+
+### 5.1 Session identity
+
+Supported transport replacement must not unnecessarily replace logical session identity.
+
+### 5.2 Lifetime isolation
+
+Work belonging to an older session lifetime must not silently become current work.
+
+### 5.3 Replay rejection
+
+Previously accepted or observed work must not become new canonical work merely because it is delivered again.
+
+### 5.4 Canonical admission
+
+Rejected operations must not modify accepted state or canonical history.
+
+### 5.5 Authority control
+
+Transport reachability must not automatically create authority to change canonical state.
+
+### 5.6 Recovery
+
+Recovery must preserve the same lifecycle and authority rules used during normal operation.
+
+These properties form the minimum architectural basis for controlled deployment evaluation.
+
+---
+
+## 6. Evidence Behind the Readiness Position
+
+The readiness assessment is not based on one demonstration.
+
+The current engineering record includes validation of several independent failure classes.
+
+Representative recorded results include:
+
+```text
+1000 transport migrations
+session identity preserved
+```
+
+```text
+128 sequential session incarnations
+127 historical delayed operations
+127 rejected
+0 accepted
+```
+
+```text
+9999 replay attempts
+9999 rejected
+0 accepted
+```
+
+A real network interruption also produced an observable:
+
+```text
+TRANSPORT_REACHABILITY=LOST
+```
+
+followed later by:
+
+```text
+TRANSPORT_REACHABILITY=RECOVERED
+```
+
+These results are examples from specific validation runs.
+
+They are not deployment performance guarantees.
+
+---
+
+## 7. Why the Physical Interruption Result Matters
+
+The recorded network interruption lasted approximately 41.6 seconds.
+
+That number is **not** presented as a recovery target or performance result.
+
+The useful fact is that the transport genuinely disappeared.
+
+This distinguishes the scenario from a test where only an internal state flag simulated failure.
+
+The deployment-relevant question is:
+
+> When transport availability changes in reality, does the session model remain coherent?
+
+The recorded scenario provided evidence that it did under the tested conditions.
+
+---
+
+## 8. Migration Readiness
+
+VRP has sufficient migration evidence to justify external migration evaluation.
+
+The runtime has been exercised across:
+
+- path replacement;
+- transport replacement;
+- repeated migration;
+- network interruption;
+- transport recovery.
+
+The deployment claim is intentionally limited:
+
+> **Supported migration can preserve VRP session identity under the tested conditions.**
+
+It is not:
+
+> Every application will experience zero disruption during every migration.
+
+Application behavior depends on factors including:
+
+- application timeout policy;
+- outage duration;
+- transport availability;
+- network behavior;
+- integration configuration.
+
+Those factors must be measured separately.
+
+---
+
+## 9. Lifetime Readiness
+
+Transport recovery creates a distributed-systems problem that is easy to miss:
+
+> Old work may arrive after the system has already moved on.
+
+VRP therefore tracks lifecycle identity independently of the logical session name.
+
+This behavior has dedicated multi-incarnation validation.
+
+The deployment-relevant requirement is:
+
+```text
+old lifetime + delayed operation
+              |
+              X
+     current canonical state
+```
+
+unless that operation independently satisfies the current lifecycle contract.
+
+The current implementation has regression coverage for this boundary.
+
+---
+
+## 10. Replay Readiness
+
+Replay rejection has been exercised independently from migration success.
+
+This matters because a system can migrate correctly while still accepting duplicated historical work.
+
+For deployment purposes, the expected property is:
+
+```text
+previously accepted work
+        +
+replayed delivery
+        !=
+new canonical execution
+```
+
+Replay behavior should be tested again in the target environment.
+
+---
+
+## 11. Canonical-State Readiness
+
+A deployment must be able to trust the distinction between:
+
+```text
+observed operation
+```
+
+and:
+
+```text
+accepted canonical operation
+```
+
+VRP regression coverage verifies that rejected state-machine operations do not enter accepted canonical history.
+
+The intended relationship is:
+
+```text
+VALID
+  |
+  v
+ACCEPT
+  |
+  +--> state
+  +--> history
+  +--> canonical event record
+```
+
+versus:
+
+```text
+INVALID
+   |
+   X
+REJECT
+   |
+   +--> no canonical state mutation
+   +--> no accepted history mutation
+   +--> no canonical event mutation
+```
+
+This boundary has been explicitly regression-tested after a previously discovered ordering defect was corrected.
+
+---
+
+## 12. Authority Readiness
+
+VRP does not use network reachability as a synonym for canonical authority.
+
+A deployment involving authority changes should test at least:
+
+```text
+current authorized operation     -> ACCEPTED
+
+unauthorized operation           -> REJECTED
+
+stale authority                  -> REJECTED
+
+valid authority progression      -> ACCEPTED
+```
+
+Existing engineering validation has exercised these conditions, including authority rollback and restart-oriented scenarios.
+
+Target deployments should reproduce the subset relevant to their topology.
+
+---
+
+## 13. Recovery Readiness
+
+VRP recovery has been exercised across transport and authority changes.
+
+Recovery does not bypass validation.
+
+The expected model remains:
+
+```text
+failure
+   |
+   v
+replacement / recovery opportunity
+   |
+   v
+lifecycle validation
+   |
+   v
+authority validation
+   |
+   v
+canonical transition
+```
+
+Stale, replayed, unauthorized or state-invalid work remains rejectable during recovery.
+
+This is a core deployment requirement.
+
+---
+
+## 14. Runtime API Boundaries
+
+Deployment readiness also depends on API ownership semantics.
+
+Recent engineering review specifically tested whether data returned by runtime APIs could be mutated by callers in ways that bypass canonical admission.
+
+Real mutable-boundary defects were found during this work.
+
+They were reproduced, corrected and covered by regression tests.
+
+Reviewed surfaces include:
+
+- managed-session reads;
+- event-log reads;
+- event metadata;
+- path-health reads;
+- relay-list reads;
+- authority snapshots;
+- transport-registry behavior.
+
+This does not justify assuming that every future API is safe automatically.
+
+It does show that ownership and mutation boundaries are part of the current qualification process.
+
+---
+
+## 15. Concurrency Readiness
+
+The runtime has concurrency-oriented regression coverage and repeated race-detector qualification.
+
+A deterministic concurrency scenario has completed 1,000 repeated successful executions.
+
+Other tests cover concurrent:
+
+- session activity;
+- historical delayed work;
+- path activity;
+- packet identifier generation;
+- reincarnation behavior.
+
+This supports controlled concurrent evaluation.
+
+It does not establish exhaustive scheduler coverage.
+
+---
+
+## 16. Long-Duration Readiness
+
+VRP has been exercised beyond short unit-test duration.
+
+Recorded validation includes:
+
 - prolonged network turbulence;
 - repeated network transitions;
-- extended link interruption;
-- long-running harness execution.
+- extended transport loss;
+- repeated validation cycles;
+- week-scale harness execution.
 
-A week-scale validation harness repeatedly evaluated continuity invariants during extended execution.
-
-No canonical continuity failure was observed in the recorded run.
-
-Long-duration qualification remains ongoing because operational confidence increases with additional runtime exposure.
+Long-duration qualification should still be repeated for the target deployment because resource behavior and traffic characteristics are environment-specific.
 
 ---
 
-# 15. Evidence Readiness
+## 17. Evidence Readiness
 
-Deployment evaluation should not depend exclusively on statements from the implementation owner.
+Important VRP validation runs can be associated with evidence such as:
 
-VRP therefore uses an evidence-oriented validation approach.
+```text
+source revision
+source tree
+timestamp
+environment
+scenario
+observations
+summary
+integrity information
+verdict
+```
 
-Validation artifacts can include:
+Evidence modification and historical rewrite scenarios have also been exercised.
 
-- runtime observations;
-- canonical summaries;
-- manifests;
-- hashes;
-- verification results;
-- evidence bundles.
+The public verification boundary can check selected exposed properties without requiring access to the protected runtime source.
 
-Evidence-integrity testing has included modification of validation inputs to confirm that inconsistent evidence is detected.
+This distinction is important:
 
-Historical integrity validation has also exercised rewrite rejection.
+```text
+independent evidence verification
+              !=
+independent source-code verification
+```
 
----
+The former exists.
 
-# 16. Independent Verification Readiness
-
-VRP provides public validation surfaces intended to support external evaluation without requiring disclosure of protected implementation details.
-
-The external verification model is intended to answer questions such as:
-
-- Was the expected continuity property observed?
-- Was stale work rejected?
-- Was replay rejected?
-- Was canonical lineage preserved?
-- Did the evidence remain internally consistent?
-- Did the runtime produce the expected public verdict?
-
-The principle is:
-
-> **Verification should depend on observable evidence, not access to proprietary runtime internals.**
+The latter is not implied by this document.
 
 ---
 
-# 17. Deployment Model
+## 18. Initial Deployment Scope
 
-A controlled VRP deployment should be treated as an integration and qualification process.
+The lowest-risk initial deployment is controlled and observable.
 
-A typical deployment progression is:
+A suitable first environment should have:
 
-    PHASE 1
-    Environment identification
-        |
-        v
-    PHASE 2
-    Integration boundary definition
-        |
-        v
-    PHASE 3
-    Transport / infrastructure integration
-        |
-        v
-    PHASE 4
-    Baseline validation
-        |
-        v
-    PHASE 5
-    Failure and migration validation
-        |
-        v
-    PHASE 6
-    Evidence verification
-        |
-        v
-    PHASE 7
-    Controlled operational evaluation
-        |
-        v
-    PHASE 8
-    Environment-specific acceptance decision
+- known topology;
+- bounded session count;
+- explicit transport configuration;
+- controlled failure injection;
+- observable session state;
+- evidence capture;
+- rollback capability.
 
-The deployment organization remains responsible for its own operational acceptance criteria.
+The goal is to establish environment-specific behavior before increasing scope.
 
 ---
 
-# 18. Recommended Initial Deployment Scope
+## 19. Required Target-Environment Tests
 
-The recommended first operational use is a controlled environment where:
+Before production acceptance, the target environment should exercise at least:
 
-- transport transitions can be observed;
-- runtime evidence can be collected;
-- failure scenarios can be reproduced safely;
-- application continuity requirements are understood;
-- monitoring is available;
-- rollback procedures exist;
-- infrastructure ownership is clear.
+```text
+1. Baseline session establishment
+2. Active transport interruption
+3. Replacement transport attachment
+4. Session-preserving migration
+5. Replay rejection
+6. Historical-lifetime rejection
+7. Invalid-transition rejection
+8. Recovery
+9. Evidence capture
+10. Evidence verification
+```
 
-The initial deployment should prioritize measurable continuity behavior rather than maximum deployment scale.
+Where authority management is part of the deployment:
 
----
+```text
+11. Unauthorized authority attempt
+12. Valid authority transition
+13. Stale authority / rollback attempt
+```
 
-# 19. What an Evaluator Should Test
-
-An external engineering team evaluating VRP should prioritize observable properties.
-
-Recommended validation categories include:
-
-### Baseline
-
-Confirm that the runtime starts from a known environment and that evidence identifies the evaluated build.
-
-### Session Establishment
-
-Confirm that a canonical session can be established and reaches the expected active state.
-
-### Transport Interruption
-
-Interrupt the active transport and observe the runtime response.
-
-### Transport Replacement
-
-Provide an alternative transport and observe whether session identity remains stable.
-
-### Migration
-
-Exercise repeated migration rather than only one transition.
-
-### Replay
-
-Present previously observed work and verify rejection.
-
-### Stale Lifetime
-
-Exercise historical work after session recreation or recovery.
-
-### Authority
-
-Attempt both authorized and unauthorized authority transitions.
-
-### Recovery
-
-Confirm that recovery returns the session to an accepted canonical state.
-
-### Evidence
-
-Verify the resulting evidence independently.
+These tests should be tied to the actual deployment build.
 
 ---
 
-# 20. Environment-Specific Qualification
+## 20. Application Qualification
 
-Before production acceptance, each target environment should define:
+VRP session continuity and application continuity should be reported separately.
 
-- supported operating systems;
-- network topology;
-- transport types;
-- expected session count;
-- migration frequency;
-- latency requirements;
-- outage expectations;
-- recovery requirements;
-- application timeout behavior;
-- observability requirements;
-- operational ownership;
-- incident procedures.
+For example:
 
-These are deployment properties, not universal protocol constants.
+```text
+VRP_SESSION_CONTINUITY=PASS
+APPLICATION_TIMEOUT=FAIL
+```
+
+is a meaningful result.
+
+So is:
+
+```text
+VRP_SESSION_CONTINUITY=FAIL
+APPLICATION_RECONNECTED=YES
+```
+
+Combining these into one vague "network test passed" result would hide useful information.
 
 ---
 
-# 21. Performance Qualification
+## 21. Performance Qualification
 
-Functional correctness and performance qualification are separate concerns.
+The current readiness claim is primarily about correctness and continuity invariants.
 
-A deployment should establish environment-specific requirements for:
+Production deployment should separately establish requirements for:
 
 - throughput;
 - latency;
 - migration duration;
 - recovery duration;
-- memory consumption;
-- CPU consumption;
+- CPU;
+- memory;
 - session scale;
 - transport scale;
-- evidence-generation overhead.
+- evidence overhead.
 
-VRP validation includes bounded-resource and runtime-pressure testing, but no single benchmark should be interpreted as a universal capacity guarantee for every deployment.
+Those thresholds depend on the deployment.
 
----
-
-# 22. Operational Monitoring
-
-A deployment should provide enough observability to determine:
-
-- current session status;
-- transport availability;
-- migration activity;
-- recovery activity;
-- authority changes;
-- rejected stale work;
-- rejected replay;
-- evidence-verification status.
-
-Operational monitoring should describe externally meaningful runtime state without requiring exposure of protected internal mechanisms.
+A correctness result should not be presented as a performance benchmark.
 
 ---
 
-# 23. Failure Expectations
+## 22. Operational Requirements
 
-VRP does not assume that the underlying network remains continuously available.
+Production acceptance requires more than runtime correctness.
 
-Deployments should expect:
+The deploying organization should define:
 
-- interface loss;
-- temporary disconnection;
-- path degradation;
-- transport replacement;
-- delayed packets;
-- duplicated packets;
-- reordered packets;
-- stale work;
-- infrastructure restart;
-- partial service recovery.
+- monitoring;
+- incident response;
+- configuration ownership;
+- upgrade process;
+- rollback process;
+- evidence retention;
+- capacity limits;
+- operational alerts.
 
-The runtime architecture is designed around the assumption that transport conditions can change.
+These are deployment responsibilities rather than universal protocol constants.
 
 ---
 
-# 24. Application Integration
+## 23. Deployment-Blocking Results
 
-VRP continuity does not automatically redefine application behavior.
+The following results should block unconditional acceptance until understood:
 
-Applications may still have their own:
+```text
+replay accepted as new canonical work
 
-- timeout policies;
-- retry behavior;
-- connection semantics;
-- transaction boundaries;
-- recovery expectations.
+historical lifetime work accepted as current
 
-Deployment evaluation must therefore distinguish:
+unauthorized authority accepted
 
-    VRP session continuity
+authority rollback accepted
 
-from:
+rejected event recorded as canonical
 
-    application-specific continuity policy
+canonical state/history divergence
 
-The integration environment determines how those layers interact.
+unexpected session identity replacement
+during supported migration
 
----
+required recovery failure
 
-# 25. Security Review
+evidence inconsistent with reported verdict
+```
 
-Controlled deployment should include an environment-specific security review.
-
-The review should focus on externally relevant properties including:
-
-- identity boundaries;
-- authority boundaries;
-- replay behavior;
-- stale-work rejection;
-- evidence integrity;
-- operational access;
-- deployment configuration;
-- failure policy.
-
-A deployment security review does not require publication of protected runtime implementation details.
+These directly contradict core VRP invariants.
 
 ---
 
-# 26. Current Deployment Risks
+## 24. Environment-Specific Failures
 
-The remaining deployment risks are primarily associated with environment-specific qualification rather than absence of the core continuity architecture.
+Not every failed deployment test means the continuity model itself failed.
 
-Relevant areas include:
+Examples requiring separate diagnosis include:
 
-- previously untested infrastructure combinations;
-- application-specific timeout behavior;
-- organization-specific transport adapters;
-- large-scale performance characteristics;
-- operational configuration;
-- monitoring integration;
-- deployment-specific failure combinations.
+- application timeout;
+- host resource exhaustion;
+- routing configuration;
+- unsupported transport behavior;
+- monitoring failure;
+- infrastructure dependency failure.
 
-These should be measured during controlled evaluation.
-
----
-
-# 27. Current Engineering Direction
-
-Current engineering work prioritizes:
-
-    boundary hardening
-    regression expansion
-    runtime isolation
-    failure containment
-    deployment integration
-    performance measurement
-    long-duration execution
-    evidence quality
-    external reproducibility
-
-The objective is to reduce deployment uncertainty while keeping the architectural contract stable.
+The qualification report should distinguish the failing layer instead of collapsing everything into `VRP PASS` or `VRP FAIL`.
 
 ---
 
-# 28. Deployment Gate
+## 25. Relationship to QUIC, Multipath TCP and VPN Roaming
 
-VRP has sufficient engineering evidence to proceed to:
+Deployment teams should not evaluate VRP on the premise that path migration is unique to VRP.
 
-> **controlled deployment evaluation**
+It is not.
 
-The following statement is currently appropriate:
+QUIC supports connection migration.
 
-    CORE ARCHITECTURE:              IMPLEMENTED
-    CONTINUITY MODEL:               VALIDATED
-    MIGRATION MODEL:                VALIDATED
-    LIFETIME ISOLATION:             VALIDATED
-    REPLAY RESISTANCE:              VALIDATED
-    AUTHORITY MODEL:                VALIDATED
-    CANONICAL ADMISSION:            VALIDATED
-    FAILURE CONTAINMENT:            VALIDATED
-    CONCURRENCY QUALIFICATION:      VALIDATED
-    EVIDENCE MODEL:                 VALIDATED
-    REAL NETWORK VALIDATION:        COMPLETED
-    CONTROLLED DEPLOYMENT:          READY
-    ENVIRONMENT QUALIFICATION:      REQUIRED
-    UNIVERSAL CERTIFICATION:        NOT CLAIMED
+Multipath TCP supports multiple network paths.
 
----
+VPN and tunnel systems may support endpoint roaming or reconnection.
 
-# 29. Overall Assessment
+Application frameworks frequently implement their own reconnect and failover logic.
 
-VRP has crossed the boundary between architectural feasibility work and controlled deployment evaluation.
+VRP's deployment boundary is instead concerned with maintaining a higher-level combination of:
 
-The runtime has accumulated engineering evidence across:
+```text
+session identity
+lifecycle identity
+canonical state
+authority
+transport replacement
+stale/replay rejection
+recovery evidence
+```
 
-- session continuity;
-- transport replacement;
-- migration;
-- lifetime isolation;
-- replay rejection;
-- authority continuity;
-- canonical state integrity;
-- recovery;
-- concurrency;
-- evidence integrity;
-- physical network interruption;
-- long-duration execution.
+This may complement, overlap with, or sit above existing transport mechanisms depending on the integration.
 
-Recent engineering work has additionally hardened API and canonical-state boundaries and added dedicated regression coverage around those boundaries.
+VRP should therefore be compared by responsibility and invariant, not by the vague question:
 
-The appropriate deployment position is therefore:
-
-> **VRP is ready for controlled pilot and deployment evaluation where environment-specific integration, performance qualification, operational validation, and acceptance testing can be performed.**
-
-Production acceptance remains a decision based on the requirements and evidence of the specific deployment environment.
+> "Does it reconnect?"
 
 ---
 
-## Public Scope
+## 26. No Replacement Claim
 
-This document intentionally describes deployment-relevant guarantees, validation results, and qualification requirements.
+VRP does not need to replace QUIC, WireGuard, Multipath TCP or every application failover mechanism in order to be useful.
 
-Protected runtime implementation details are outside its scope.
+A deployment may use existing transport technologies underneath or alongside the VRP continuity model.
+
+The relevant architectural question is:
+
+> **Which component owns session continuity and canonical authority when the underlying transport changes?**
+
+That boundary should be explicit in every integration.
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Deployment Documentation — October 2026**
+## 27. Acceptance Levels
+
+A deployment can be classified using three practical states.
+
+### Evaluation Ready
+
+The runtime can be integrated and its core invariants can be tested.
+
+Current project status:
+
+```text
+YES
+```
+
+### Environment Qualified
+
+The required invariants and operational requirements have passed in a specific target environment.
+
+Current project-wide status:
+
+```text
+ENVIRONMENT SPECIFIC
+```
+
+### Universally Production Certified
+
+The implementation has been certified for arbitrary environments without further qualification.
+
+Current status:
+
+```text
+NOT CLAIMED
+```
+
+---
+
+## 28. Deployment Decision
+
+A production decision should follow:
+
+```text
+requirements
+    |
+    v
+target environment
+    |
+    v
+failure scenarios
+    |
+    v
+observations
+    |
+    v
+evidence
+    |
+    v
+verification
+    |
+    v
+deployment decision
+```
+
+The decision should not begin with the desired verdict and work backward.
+
+---
+
+## 29. Current Readiness Statement
+
+The current engineering record supports the following statement:
+
+> **VRP is ready for controlled integration and deployment evaluation of its session-continuity, lifecycle, canonical-state, authority and recovery invariants.**
+
+It does not support the broader statement:
+
+> "VRP is certified for every production environment."
+
+The gap between those statements is intentional.
+
+It is where environment-specific engineering qualification belongs.
+
+---
+
+## 30. Review Questions
+
+Before accepting a VRP deployment, an engineering reviewer should be able to answer:
+
+1. Which build was tested?
+2. Which transports were tested?
+3. Was transport actually interrupted?
+4. Did logical session identity survive supported migration?
+5. Were stale lifetime operations rejected?
+6. Was replay rejected?
+7. Could rejected work enter canonical history?
+8. Could connectivity create unauthorized authority?
+9. Did recovery preserve lifecycle and authority rules?
+10. What exactly was independently verified?
+11. What performance limits were measured?
+12. What remains environment-specific?
+
+If those questions cannot be answered, the deployment is not yet sufficiently characterized.
+
+---
+
+## Conclusion
+
+VRP has moved beyond architecture-only validation.
+
+The runtime has implementation-backed evidence for the core properties required to begin controlled external deployment evaluation.
+
+The correct next step is not a universal production declaration.
+
+It is controlled integration in real target environments, deliberate failure injection, measurement of the relevant invariants, and preservation of the resulting evidence.
+
+That is the basis on which production acceptance should be made.
