@@ -1,656 +1,587 @@
 # VRP Engineering Validation Status
 
 **Project:** Veil Routing Protocol (VRP)  
-**Document Type:** Public Engineering Status  
-**Status:** Public  
-**Validation Scope:** Engineering evidence available as of October 2026
+**Status:** Public engineering summary  
+**Updated:** October 2026
 
 ---
 
-## Purpose
+## 1. Purpose
 
-This document summarizes the current engineering and validation status of Veil Routing Protocol (VRP).
+This document summarizes what has actually been implemented and exercised in VRP.
 
-It describes externally relevant architectural guarantees, observed validation results, deployment considerations, and public engineering conclusions.
+It is intentionally narrower than a protocol specification.
 
-It does not describe protected runtime implementation details.
+It answers four questions:
 
----
+1. What properties is VRP designed to preserve?
+2. Which of those properties have been exercised in the current implementation?
+3. What evidence exists for those results?
+4. What is not being claimed?
 
-# 1. Current Engineering Status
+The implementation and the validation surface are separate.
 
-VRP has progressed beyond an architecture-only or proof-of-concept stage.
-
-The project currently includes:
-
-- an implemented continuity runtime;
-- canonical session lifecycle management;
-- transport-independent session identity;
-- session lifetime and incarnation fencing;
-- authority and ownership controls;
-- path and transport migration handling;
-- replay and stale-event rejection;
-- canonical event history;
-- deterministic state validation;
-- runtime recovery handling;
-- evidence generation and verification;
-- bounded-resource validation;
-- concurrency and race testing;
-- physical network interruption testing;
-- long-duration runtime testing;
-- public validation tooling.
-
-Current engineering work is concentrated on:
-
-- boundary hardening;
-- regression prevention;
-- API isolation;
-- failure containment;
-- evidence quality;
-- deployment integration;
-- operational validation;
-- long-duration qualification.
+Public validation describes observable behavior and invariants. It does not require publication of the protected runtime source.
 
 ---
 
-# 2. Core Architectural Property
+## 2. Current Status
 
-The central VRP architectural principle is:
+VRP is an implemented continuity runtime under active engineering validation.
+
+The current implementation has been exercised against:
+
+- transport loss and replacement;
+- repeated transport migration;
+- stale session-lifetime work;
+- replay;
+- invalid state transitions;
+- authority rollback;
+- runtime recovery;
+- concurrency;
+- prolonged network instability;
+- evidence modification.
+
+Current engineering position:
+
+> **The core continuity model is implemented and has passed the validation scenarios described below. Controlled integration evaluation is appropriate. Universal production certification is not claimed.**
+
+---
+
+## 3. Core Invariant
+
+The central VRP invariant is:
 
 > **Session ≠ Transport**
 
-A VRP session is not defined by one socket, network interface, path, relay, or transport instance.
+A session is a logical continuity object.
 
-Transport is treated as replaceable runtime infrastructure.
+A transport is one mechanism currently carrying traffic for that session.
 
-The session remains the continuity object.
+Therefore a change in:
 
-This separation has been exercised across:
+- network interface;
+- path;
+- relay;
+- endpoint mapping;
+- transport instance;
 
-- transport interruption;
-- transport replacement;
+does not, by itself, define a new session.
+
+This is not presented as a novel networking primitive by itself.
+
+The engineering question VRP addresses is broader:
+
+> Can session identity, lifecycle, authority and canonical state remain coherent while transports fail, change, recover, or deliver stale work?
+
+The validation program is built around that question.
+
+---
+
+## 4. What VRP Validates
+
+The current validation surface focuses on five areas:
+
+| Area | Property |
+|---|---|
+| Continuity | Session identity survives supported transport replacement |
+| Lifetime | Historical work cannot silently become current work |
+| Authority | Connectivity does not automatically imply authority |
+| Canonical state | Rejected operations do not become accepted history |
+| Evidence | Validation results can be checked for consistency |
+
+These properties are related, but they are tested separately.
+
+A successful transport migration does not automatically prove replay resistance.
+
+Replay resistance does not automatically prove authority correctness.
+
+Evidence integrity does not automatically prove runtime correctness.
+
+Each claim therefore has its own scope.
+
+---
+
+## 5. Transport Continuity
+
+VRP has been exercised through real and simulated transport disruption.
+
+Validated scenarios include:
+
+- active transport loss;
+- replacement transport attachment;
 - path migration;
-- relay migration;
 - network rebinding;
-- delayed historical work;
-- stale event delivery;
-- replay attempts;
-- runtime recovery;
-- authority changes.
+- repeated migration;
+- transport recovery.
+
+One recorded migration stress run completed:
+
+```text
+MIGRATIONS=1000
+SESSION_IDENTITY_PRESERVED=YES
+```
+
+A separate physical network interruption produced:
+
+```text
+TRANSPORT_REACHABILITY=LOST
+TRANSPORT_REACHABILITY=RECOVERED
+OBSERVED_OUTAGE_MS=41633
+```
+
+The significance of the second result is not the outage duration.
+
+The relevant property is that transport reachability disappeared and later returned without transport identity being treated as the logical session identity.
+
+### Status
+
+```text
+TRANSPORT_CONTINUITY=VALIDATED_UNDER_TESTED_CONDITIONS
+```
 
 ---
 
-# 3. Canonical Session Lifecycle
+## 6. Lifetime Isolation
 
-VRP maintains an explicit canonical session lifecycle.
+A session identifier may exist across more than one runtime lifetime.
 
-Validated runtime flows include transitions equivalent to:
+VRP therefore distinguishes the current lifetime from historical lifetimes.
 
-    INITIAL
-      |
-      v
-    SESSION_INIT
-      |
-      v
-    SESSION_ESTABLISHED
-      |
-      v
-    SESSION_ACTIVE
-      |
-      +---- transport/path failure ----+
-                                       |
-                                       v
-                               DETACH_TRANSPORT
-                                       |
-                                       v
-                                  MIGRATION
-                                       |
-                                       v
-                             SESSION_RECOVERED
-                                       |
-                                       v
-                               SESSION_ACTIVE
+This matters because delayed work from an older lifetime may arrive after a newer lifetime already exists.
 
-Invalid state transitions are rejected.
+A dedicated validation exercised 128 sequential incarnations of the same logical session identity.
 
-Rejected events are not permitted to silently become accepted canonical history.
+After incarnation 128 became current, operations associated with the 127 historical incarnations were delivered concurrently.
 
-Regression validation verifies that rejected events do not mutate:
+Result:
 
-- canonical session state;
-- accepted transition history;
-- canonical event history.
+```text
+TOTAL_INCARNATIONS=128
+HISTORICAL_OPERATIONS=127
+HISTORICAL_ACCEPTED=0
+HISTORICAL_REJECTED=127
+CURRENT_LIFETIME_PRESERVED=YES
+```
+
+The test was intentionally arranged so that the operation type could otherwise be valid in the current state.
+
+The rejection therefore tested lifetime isolation rather than merely invalid state-machine input.
+
+### Status
+
+```text
+LIFETIME_ISOLATION=VALIDATED
+```
 
 ---
 
-# 4. Session Lifetime Isolation
+## 7. Replay Resistance
 
-VRP distinguishes different lifetimes of the same logical session identifier.
-
-Canonical lifecycle identity contains explicit lifetime information.
-
-Validation has covered:
-
-- session removal;
-- session recreation;
-- repeated reincarnation;
-- delayed events from previous lifetimes;
-- stale migration requests;
-- historical work arriving after a new lifetime exists.
-
-A multi-reincarnation validation exercised:
-
-    Sequential incarnations:          128
-    Historical delayed operations:    127
-    Historical operations accepted:   0
-    Historical operations rejected:   127
-    Current lifetime preserved:        YES
-    Canonical stale mutation:          NONE
-
-This provides engineering evidence that historical work cannot regain current authority merely because a session identifier has been reused.
-
----
-
-# 5. Replay Resistance
-
-Replay handling has been exercised under focused and high-volume scenarios.
+Replay handling has been exercised independently from ordinary transport recovery.
 
 Validation includes:
 
 - duplicate delivery;
 - stale sequence delivery;
-- replay-window behavior;
 - replay flooding;
-- historical lifetime replay;
-- evidence replay validation.
+- historical-lifetime replay.
 
-A recorded live validation rejected:
+A recorded validation rejected:
 
-    9,999 replay attempts
+```text
+REPLAY_ATTEMPTS=9999
+REPLAY_ACCEPTED=0
+REPLAY_REJECTED=9999
+```
 
-while preserving session identity.
+The important property is not the number 9,999.
 
-Separate replay-flood testing exercised thousands of rejected replay attempts while preserving runtime invariants.
+The property is:
+
+> previously observed work did not become new canonical work when replayed.
+
+### Status
+
+```text
+REPLAY_RESISTANCE=VALIDATED_UNDER_TESTED_CONDITIONS
+```
 
 ---
 
-# 6. Authority Continuity
+## 8. Canonical Admission
 
-VRP separates session continuity from transport ownership and authority decisions.
+VRP maintains an explicit canonical session lifecycle.
 
-Authority validation has covered:
+An operation must pass the relevant lifecycle and state checks before it becomes accepted canonical work.
 
-- valid owner migration;
-- invalid owner migration attempts;
-- authority generation changes;
+Regression testing verifies the following relationship:
+
+### Accepted operation
+
+```text
+state change       = expected
+history delta      = 1
+canonical log delta = 1
+```
+
+### Rejected operation
+
+```text
+state change       = 0
+history delta      = 0
+canonical log delta = 0
+```
+
+This boundary was specifically hardened after testing identified a case where a state-invalid event could be recorded before final state-machine acceptance.
+
+The ordering was corrected and regression coverage was added.
+
+That history is relevant because the current claim is based on a reproduced defect followed by a verified correction, not merely on architectural intent.
+
+### Status
+
+```text
+CANONICAL_ADMISSION=VALIDATED
+```
+
+---
+
+## 9. Terminal-State Behavior
+
+Terminal session states have dedicated regression coverage.
+
+The supported event surface was exercised against terminal states including:
+
+```text
+SESSION_CLOSED
+SESSION_FAILED
+```
+
+Invalid attempts to move those sessions back into ordinary operation were rejected without changing:
+
+- canonical state;
+- accepted transition history;
+- canonical event history.
+
+Explicit supported recovery remains separate from accidental resurrection.
+
+### Status
+
+```text
+TERMINAL_STATE_ISOLATION=VALIDATED
+```
+
+---
+
+## 10. Authority
+
+VRP treats transport availability and authority as different properties.
+
+A reachable node or viable path does not automatically receive permission to change canonical session state.
+
+Validation has exercised:
+
+- unauthorized migration attempts;
+- valid authority transitions;
 - stale authority;
-- authority rollback attempts;
-- restart races;
-- authority lineage recovery.
+- authority rollback;
+- authority recovery;
+- restart races.
 
-A validated authority failover flow demonstrated:
+A representative authority validation produced:
 
-    Initial owner:       node-A
-    Initial relay:       relay-A
-    Initial path:        path-A
-    Initial generation:  1
+```text
+UNAUTHORIZED_TRANSITION=REJECTED
+AUTHORIZED_TRANSITION=ACCEPTED
+GENERATION=1->2
+```
 
-    Invalid requester:   node-X
-    Result:              REJECTED
+The relevant invariant is monotonic canonical authority progression, not network reachability.
 
-    Valid requester:     node-A
-    Result:              ACCEPTED
+### Status
 
-    Final owner:         node-A
-    Final relay:         relay-B
-    Final path:          path-B
-    Final generation:    2
-
-After migration and recovery, the canonical session returned to:
-
-    SESSION_ACTIVE
+```text
+AUTHORITY_CONTROL=VALIDATED_UNDER_TESTED_CONDITIONS
+```
 
 ---
 
-# 7. Canonical Admission Boundary
+## 11. Read-Boundary Hardening
 
-Recent engineering work strengthened and verified the relationship between runtime events and canonical history.
+Validation has also targeted a different failure class: accidental mutation of canonical runtime state through APIs intended primarily for observation.
 
-Regression coverage verifies that:
+This work found real mutable-boundary defects.
 
-- accepted events mutate canonical history exactly once;
-- rejected state events do not enter canonical event history;
-- duplicate session creation does not contaminate canonical history;
-- events without complete current-lifetime identity are rejected;
-- correctly bound current-lifetime events are admitted;
-- canonical event ordering remains consistent with accepted state transitions.
+Examples included returned runtime representations that could expose mutable canonical data to callers.
 
-The admission model is fail-closed.
+Those surfaces were corrected and regression-tested.
 
-Missing or stale lifecycle identity does not receive implicit authority.
+Reviewed boundaries include:
 
----
+- managed session reads;
+- canonical event-log reads;
+- event metadata;
+- path-health reads;
+- relay-list reads;
+- authority snapshots;
+- transport-registry semantics.
 
-# 8. Canonical Event Isolation
+This work is important because protocol invariants can be correct while an unsafe API boundary still permits state corruption.
 
-Engineering validation identified and corrected mutable API exposure around canonical event data.
+### Status
 
-Regression coverage now verifies isolation for:
+```text
+REVIEWED_READ_BOUNDARIES=ISOLATED_OR_EXPLICITLY_CLASSIFIED
+```
 
-- event-log snapshots;
-- returned event collections;
-- event metadata values;
-- supported event data values;
-- caller-owned event values after canonical admission;
-- session event reads.
-
-The objective is straightforward:
-
-> A read operation must not accidentally become a mutation path into canonical history.
+This statement applies to the reviewed surfaces. It is not a claim that every future API automatically has safe ownership semantics.
 
 ---
 
-# 9. Runtime Read-Boundary Hardening
+## 12. Concurrency
 
-Engineering review has systematically examined exported runtime read surfaces.
+VRP has dedicated concurrency and race-oriented validation.
 
-## Managed Session Reads
+The current test corpus includes scenarios involving:
 
-Returned managed-session representations are detached from canonical session state.
+- simultaneous session activity;
+- delayed historical work;
+- concurrent path activity;
+- packet identifier generation;
+- repeated session reincarnation;
+- recovery behavior.
 
-External mutation of a returned representation does not mutate the canonical runtime session.
+A deterministic concurrency scenario completed 1,000 repeated successful executions.
 
-## Event Log Reads
+Selected regression families are also repeatedly executed with Go race detection.
 
-Returned event-log views are isolated from canonical event storage.
+### Status
 
-## Path Health Reads
+```text
+CONCURRENCY_VALIDATION=PASS_UNDER_TESTED_SCENARIOS
+```
 
-Regression coverage verifies detached read behavior for:
-
-- Get;
-- All;
-- History.
-
-## Relay Selector Reads
-
-Returned relay collections use isolated container storage.
-
-Mutation of the returned collection does not modify the selector's internal relay list.
-
-## Authority Reads
-
-Authority read operations return detached representations rather than exposing canonical authority state for direct mutation.
-
-## Transport Registry
-
-Transport list containers are isolated while transport objects intentionally retain runtime identity where required by runtime operation.
-
-The distinction is explicit:
-
-    Container isolation != runtime transport cloning
+This is engineering evidence, not exhaustive proof of every possible scheduler interleaving.
 
 ---
 
-# 10. Runtime Composition Boundary
+## 13. Runtime Pressure
 
-VRP distinguishes between:
-
-- detached read representations; and
-- intentional runtime composition surfaces.
-
-Regression testing verifies:
-
-    Manager identity:              intentionally shared
-    Authority manager identity:    intentionally shared
-    Unbound event admission:       REJECTED
-    Current-lifetime admission:    ACCEPTED
-    Canonical admission policy:    FAIL-CLOSED
-
-This means runtime composition does not automatically bypass canonical lifecycle validation.
-
----
-
-# 11. Physical Transport Failure Validation
-
-VRP has been exercised against actual network interruption.
-
-A recorded physical network validation observed:
-
-    TRANSPORT_REACHABILITY=LOST
-
-followed by:
-
-    TRANSPORT_REACHABILITY=RECOVERED
-
-with an observed physical interruption of approximately:
-
-    41.6 seconds
-
-The validation objective was not zero packet loss during physical disconnection.
-
-The objective was preservation of higher-level session continuity semantics across transport loss and recovery.
-
----
-
-# 12. Transport Migration Stress
-
-Migration behavior has been exercised repeatedly rather than only through isolated demonstrations.
-
-A recorded validation completed:
-
-    1,000 transport migrations
-
-while preserving session identity.
-
-Additional scenarios have exercised:
-
-- Wi-Fi to mobile transitions;
-- transport replacement;
-- relay migration;
-- path migration;
-- transport collapse;
-- network return;
-- rebinding behavior.
-
----
-
-# 13. Runtime Pressure Validation
-
-VRP has been exercised under runtime pressure conditions including:
+VRP has been exercised under degraded runtime and network conditions including:
 
 - latency variation;
 - jitter;
-- packet reordering;
+- reordering;
 - congestion;
-- transport interruption;
 - repeated migration;
-- bounded-resource execution;
-- concurrent session activity.
+- temporary transport loss.
 
-These tests evaluate whether continuity invariants survive degraded operating conditions rather than only ideal network conditions.
+The expected outcome is not always uninterrupted delivery.
 
----
+The expected outcome is preservation of the tested canonical invariant or controlled rejection/containment.
 
-# 14. Concurrency Validation
+### Status
 
-Concurrency testing is part of the normal VRP qualification process.
-
-Engineering validation has included:
-
-- concurrent session operations;
-- concurrent path activity;
-- packet identifier generation;
-- stale historical work;
-- repeated session reincarnation;
-- deterministic runtime tests;
-- race-detector execution.
-
-Selected concurrency scenarios have been repeated tens or hundreds of times under race detection.
-
-A deterministic concurrency validation was additionally repeated:
-
-    1,000 executions
-
-with consistent successful results.
+```text
+PRESSURE_VALIDATION=PASS_UNDER_TESTED_SCENARIOS
+```
 
 ---
 
-# 15. Long-Duration Validation
+## 14. Long-Duration Validation
 
-VRP has been exercised beyond short unit-test execution.
+Short tests are insufficient for stateful continuity systems.
 
-Validation has included:
+VRP validation therefore includes extended execution.
 
-- repeated runtime cycles;
-- long network turbulence;
+Recorded engineering runs include:
+
+- prolonged network turbulence;
+- repeated transport changes;
 - extended link interruption;
-- repeated transport toggling;
-- long-duration harness execution.
+- multi-cycle runtime validation;
+- week-scale harness execution.
 
-A week-scale Oracle Linux validation harness repeatedly evaluated multiple continuity invariants per cycle without observing a canonical continuity failure in the recorded run.
+These runs are intended to expose state accumulation, delayed work and recovery problems that may not appear in short unit tests.
 
-Long-duration qualification remains an ongoing engineering activity.
+### Status
 
----
-
-# 16. Evidence Integrity
-
-VRP validation does not rely solely on terminal messages stating that a test passed.
-
-The project uses an evidence-oriented validation model including:
-
-- runtime event evidence;
-- canonical summaries;
-- manifests;
-- cryptographic hashes;
-- verification reports;
-- evidence bundles;
-- independent verification tooling.
-
-Validation has included modification of evidence inputs to ensure inconsistent evidence is detected rather than silently accepted.
-
-Historical rewrite attempts have also been exercised and rejected by the validation model.
+```text
+LONG_DURATION_VALIDATION=PASS_UNDER_RECORDED_RUNS
+```
 
 ---
 
-# 17. Independent Verification
+## 15. Evidence Verification
 
-VRP includes public validation surfaces intended to allow engineering claims to be checked independently of protected runtime implementation.
+VRP validation does not treat a printed `PASS` line as sufficient by itself.
 
-Independent verification work has covered:
+Evidence workflows may bind results to information such as:
 
-- evidence bundles;
-- historical integrity;
-- runtime outcomes;
-- canonical lineage;
-- replay behavior;
-- failure scenarios.
+```text
+UTC
+source revision
+source tree
+environment
+scenario
+observations
+summary
+manifest
+integrity hashes
+verdict
+```
 
-The public validation principle is:
+Evidence-integrity testing has included deliberate modification of recorded evidence and historical data.
 
-> Verify the exposed evidence and guarantees without requiring disclosure of protected implementation details.
+The corresponding verification paths detected inconsistencies in the exercised scenarios.
 
----
+### Status
 
-# 18. Fail-Closed Behavior
+```text
+EVIDENCE_INTEGRITY=VALIDATED
+INDEPENDENT_EVIDENCE_VERIFICATION=VALIDATED
+```
 
-Fail-closed behavior is a recurring VRP engineering requirement.
+Independent verification here means verification of the exposed evidence contract.
 
-Regression and runtime validation include rejection of:
-
-- missing lifetime identity;
-- stale lifetime epochs;
-- stale incarnations;
-- duplicate creation;
-- invalid state transitions;
-- unauthorized authority migration;
-- replayed work;
-- stale historical work;
-- inconsistent canonical history.
-
-Invalid input is not silently promoted into current authority.
+It does **not** mean independent source-level verification of the protected runtime.
 
 ---
 
-# 19. Recent Boundary Hardening
+## 16. What These Results Establish
 
-Recent engineering work has specifically focused on canonical and mutable-boundary correctness.
+The current engineering evidence supports the following statements:
 
-Validated improvements include:
+```text
+Session identity can survive supported transport replacement.
+Historical session-lifetime work can be rejected.
+Replay can be rejected without becoming new canonical work.
+Invalid operations can be excluded from canonical history.
+Terminal states resist unsupported resurrection.
+Unauthorized or stale authority can be rejected.
+Recovery can preserve canonical session lineage.
+Reviewed read APIs do not expose unintended canonical mutation.
+Evidence inconsistency can be detected by the tested verification path.
+```
 
-    Canonical event acceptance atomicity
-    PASS
+These are implementation-backed engineering claims.
 
-    Rejected-event canonical-log isolation
-    PASS
-
-    Duplicate-create canonical isolation
-    PASS
-
-    Multi-reincarnation stale-work containment
-    PASS
-
-    Canonical EventLog exposure isolation
-    PASS
-
-    ManagedSession alias isolation
-    PASS
-
-    Lifetime identity trace observability
-    PASS
-
-    EventLog nested-value isolation
-    PASS
-
-    Path-health read isolation
-    PASS
-
-    Relay-selector read isolation
-    PASS
-
-    Transport-registry identity semantics
-    PASS
-
-    SessionRuntime composition boundary
-    PASS
-
-    Authority failover admission path
-    PASS
-
-These results were followed by repeated regression execution, race-detector qualification, static analysis, or combinations of those controls.
+They are narrower than saying that VRP is universally correct.
 
 ---
 
-# 20. Deployment Readiness
+## 17. What These Results Do Not Establish
 
-The current engineering status of VRP can be described as:
+The current validation does not establish that:
 
-> **Pilot / controlled-deployment ready from an engineering-validation perspective, subject to environment-specific integration and operational qualification.**
+- every network environment has been tested;
+- every possible scheduler interleaving has been explored;
+- every application will survive every outage;
+- every transport has identical behavior;
+- every API surface is permanently defect-free;
+- the entire runtime has been formally verified;
+- the public evidence verifier proves correctness of private source code;
+- one validated deployment automatically certifies another.
 
-This is intentionally different from claiming universal production readiness.
-
-The architecture and runtime have substantial implementation and validation evidence.
-
-Deployment readiness for a particular organization still depends on:
-
-- integration environment;
-- transport adapters;
-- infrastructure topology;
-- deployment scale;
-- application requirements;
-- operational monitoring;
-- failure policy;
-- performance requirements;
-- security review;
-- organization-specific acceptance criteria.
-
-VRP should therefore not be represented as requiring zero integration or zero environment-specific qualification.
+Environment-specific qualification remains necessary.
 
 ---
 
-# 21. Demonstrated Engineering Properties
+## 18. Relationship to Existing Transport Technologies
 
-Current evidence supports the following engineering statements:
+VRP does not claim that transport migration itself is new.
 
-    Session identity can survive transport replacement.
+Existing systems already provide important mechanisms in this area.
 
-    Historical session lifetimes can be fenced from current authority.
+Examples include:
 
-    Replay and stale work can be rejected.
+- QUIC connection migration and Connection IDs;
+- Multipath TCP;
+- VPN/tunnel roaming and endpoint updates;
+- application-level reconnect and failover mechanisms.
 
-    Invalid state events can be prevented from entering canonical history.
+VRP is being evaluated at a different architectural boundary.
 
-    Unauthorized authority migration can be rejected.
+Its validation focus is the combination of:
 
-    Canonical event reads can be isolated from accidental external mutation.
+```text
+session continuity
++
+explicit lifecycle identity
++
+canonical state admission
++
+authority progression
++
+stale/replay rejection
++
+transport replacement
++
+externally reviewable evidence
+```
 
-    Runtime read boundaries can be tested for alias exposure.
+The relevant comparison is therefore not:
 
-    Transport migration can occur repeatedly while preserving session identity.
+> "Can another protocol change network paths?"
 
-    Physical transport loss and subsequent recovery can occur without
-    requiring session identity to become identical to transport identity.
+Many can.
 
-    Evidence can be checked independently against exposed validation rules.
+The useful comparison is:
 
-    Concurrency and race testing can be incorporated into repeatable
-    runtime qualification.
+> "Which layer owns continuity, canonical state and authority, and what happens to those properties when transport changes or historical work arrives?"
 
----
-
-# 22. What Is Not Claimed
-
-VRP does not claim:
-
-- that physical networks cannot fail;
-- that physical disconnection produces zero packet loss;
-- that every possible deployment environment has already been tested;
-- that every transport behaves identically;
-- that every application has identical continuity requirements;
-- that engineering validation removes the need for deployment review;
-- that a pilot result automatically certifies an unrelated environment;
-- that protected implementation details must be disclosed for validation to be meaningful.
-
----
-
-# 23. Current Engineering Direction
-
-Current development is concentrated on reducing uncertainty rather than increasing architectural surface area.
-
-Priority areas include:
-
-- boundary auditing;
-- regression coverage;
-- runtime isolation;
-- failure containment;
-- deployment integration;
-- performance measurement;
-- evidence quality;
-- long-duration validation;
-- external reproducibility.
-
-A previously claimed invariant becoming independently reproducible is more valuable than adding unnecessary architectural complexity.
+A dedicated comparison document should evaluate these systems property by property rather than claiming a universal replacement for them.
 
 ---
 
-# 24. Overall Status
+## 19. Current Deployment Position
 
-VRP is no longer being evaluated only as an architectural idea.
+Based on the current engineering record:
 
-There is an implemented runtime with accumulated engineering evidence across:
-
-- continuity;
-- transport migration;
-- lifetime isolation;
-- replay rejection;
-- authority control;
-- canonical state management;
-- runtime recovery;
-- concurrency;
-- evidence integrity;
-- physical network interruption;
-- long-duration execution.
-
-Recent engineering work has additionally concentrated on canonical-boundary and API-boundary correctness.
-
-Where concrete boundary defects were identified, they were corrected and followed by dedicated regression validation.
-
-Where an exposed runtime surface was determined to have intentional identity semantics, that behavior was documented and tested instead of being unnecessarily redesigned.
-
-The appropriate current description is:
-
-> **VRP is an implemented and extensively validated continuity runtime entering controlled deployment and integration evaluation, while continuing boundary hardening and environment-specific qualification.**
+```text
+IMPLEMENTATION                    ACTIVE
+CORE CONTINUITY MODEL             VALIDATED
+LIFETIME ISOLATION                VALIDATED
+REPLAY RESISTANCE                 VALIDATED
+CANONICAL ADMISSION               VALIDATED
+AUTHORITY CONTROL                 VALIDATED
+RECOVERY                          VALIDATED
+EVIDENCE VERIFICATION             VALIDATED
+CONTROLLED INTEGRATION            READY FOR EVALUATION
+ENVIRONMENT-SPECIFIC QUALIFICATION REQUIRED
+UNIVERSAL PRODUCTION CERTIFICATION NOT CLAIMED
+```
 
 ---
 
-## Public Scope
+## 20. Review Standard
 
-This document describes externally relevant engineering properties and validation outcomes only.
+External reviewers should challenge these claims.
 
-Protected implementation details are outside the scope of this document.
+Useful review questions include:
+
+- What exact invariant is being claimed?
+- What scenario exercises it?
+- What constitutes failure?
+- Is the result tied to an identifiable build?
+- Can rejected work alter canonical history?
+- Can stale work become current?
+- Can transport reachability create authority?
+- Can returned API data mutate canonical state?
+- What exactly does the independent verifier verify?
+- Which assumptions remain outside the validation boundary?
+
+Those are the questions this public validation surface is intended to support.
 
 ---
 
-**Veil Routing Protocol (VRP)**  
-**Public Engineering Documentation — October 2026**
+## Conclusion
+
+VRP's current engineering status can be summarized without treating transport migration itself as a breakthrough:
+
+> **VRP is an implemented continuity runtime whose current validation focuses on preserving session lifecycle, canonical state and authority across transport change, failure, recovery, replay and stale work.**
+
+The current evidence supports controlled integration evaluation.
+
+Further claims should remain tied to the environments and scenarios in which they are actually demonstrated.
