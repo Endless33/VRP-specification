@@ -1,33 +1,66 @@
-# Veil Routing Protocol (VRP) Specification
+# Veil Routing Protocol (VRP)
 
-Status: Release Candidate (v1.0.0-rc1)
+**Specification Version:** v1.0.0-spec-rc1
 
-This repository contains the public technical specification of the
-Veil Routing Protocol (VRP).
+VRP (Veil Routing Protocol) is a continuity-first session protocol.
 
-The implementation is maintained separately.
+The specification defines a transport-independent session model,
+canonical state transitions, authority-driven validation and
+verifiable protocol evidence.
 
-## Principles
+---
 
-- Session != Transport
-- Continuity First
-- Authority Driven
-- Fail Closed
-- Verifiable Evidence
+# Specification
 
-## Repository Structure
+## Architecture
 
-docs/
-    architecture/
-    protocol/
-    security/
-    validation/
-    pilot/
+- docs/architecture/01-overview.md
+- docs/architecture/02-design-principles.md
 
-## Current Status
+## Protocol
 
-- Core protocol frozen
-- Runtime validated
-- Boundary audit complete
-- Release Candidate published
+- docs/protocol/01-session-lifecycle.md
+- docs/protocol/02-authority-model.md
+- docs/protocol/03-transport-independence.md
+- docs/protocol/04-replay-protection.md
+- docs/protocol/05-state-machine.md
+
+## Runtime
+
+- docs/runtime/01-runtime-pipeline.md
+- docs/runtime/02-failover.md
+- docs/runtime/03-migration.md
+- docs/runtime/04-recovery.md
+
+## Security
+
+- docs/security/01-security-model.md
+
+## Evidence
+
+- docs/evidence/01-evidence-model.md
+
+## Pilot
+
+- docs/pilot/01-pilot-guide.md
+
+## Compliance
+
+- docs/compliance/01-compliance.md
+
+## Reference
+
+- docs/reference/01-glossary.md
+- docs/reference/02-versioning.md
+- docs/reference/03-release-notes.md
+
+---
+
+# Current Status
+
+Release Candidate
+
+Repository Status: Active
+
+Working Tree: Clean
 
