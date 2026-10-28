@@ -1,11 +1,506 @@
-Copyright (c) 2026 Vitalijus Riabovas
 
-This repository contains the public engineering specification of the Veil Routing Protocol (VRP).
+VEIL ROUTING PROTOCOL (VRP)
+PROPRIETARY DOCUMENTATION LICENSE
+COPYRIGHT AND INTELLECTUAL PROPERTY NOTICE
 
-Unless explicitly stated otherwise, all proprietary implementation details, runtime source code, algorithms, optimization techniques, confidential engineering methods and protected runtime mechanisms remain the exclusive intellectual property of the author.
+Copyright (c) 2026 Vitalijus Riabovas.
+All rights reserved.
 
-This repository documents publicly available architectural concepts and engineering guidance only.
+Project: Veil Routing Protocol (VRP)
+Author and Rights Holder: Vitalijus Riabovas
+Repository: VRP-specification
+Effective Notice Date: October 28, 2026
 
-No license is granted to use, copy, reproduce, implement, reverse engineer or create derivative implementations of the Protected VRP Runtime except where explicitly permitted by separate written agreement.
+================================================================
+1. OWNERSHIP AND RESERVATION OF RIGHTS
+================================================================
 
-See individual documents for additional licensing information where applicable.
+This repository contains public engineering documentation,
+architectural specifications, technical descriptions, research
+materials, design records, diagrams, validation methodologies,
+and other materials relating to the Veil Routing Protocol (VRP).
+
+Except where expressly stated otherwise, the copyright and
+other applicable intellectual property rights in original
+materials authored by Vitalijus Riabovas are reserved by
+the rights holder.
+
+Publication of these materials does not constitute a transfer
+of ownership, assignment of intellectual property, waiver of
+rights, or grant of commercial authorization.
+
+ALL RIGHTS NOT EXPRESSLY GRANTED ARE RESERVED.
+
+No rights may be inferred solely from the public availability
+of this repository.
+
+================================================================
+2. PUBLIC DOCUMENTATION IS NOT AN OPEN-SOURCE LICENSE
+================================================================
+
+This repository is publicly accessible for engineering review,
+technical study, architectural evaluation, and examination of
+the published verification methodology.
+
+Public accessibility must not be confused with an open-source
+software license or a general permission to reproduce and
+redistribute copyrighted materials.
+
+Unless a specific file or component carries an express
+license granting additional permissions, no general license
+is granted to:
+
+- reproduce substantial copyrighted documentation;
+- redistribute modified or unmodified documentation;
+- republish copyrighted technical diagrams or specifications;
+- incorporate protected expression into commercial materials;
+- sublicense copyrighted repository materials;
+- distribute derivative versions of protected documentation;
+- represent VRP materials as independently authored work.
+
+Access, viewing, and platform-supported repository operations
+remain subject to applicable law and the permissions provided
+by the hosting platform.
+
+Any additional use requiring authorization must be approved
+in writing by the rights holder.
+
+================================================================
+3. PROTECTED VRP RUNTIME
+================================================================
+
+The Protected VRP Runtime is a separate, proprietary
+implementation associated with the VRP architecture.
+
+Its protected implementation may include:
+
+- private source code;
+- proprietary runtime algorithms;
+- execution admission mechanisms;
+- internal authority coordination;
+- synchronization and concurrency mechanisms;
+- protected continuity logic;
+- implementation-specific state management;
+- internal transport selection mechanisms;
+- optimization strategies;
+- private security controls;
+- unpublished implementation architecture;
+- confidential engineering methods;
+- proprietary deployment components.
+
+This repository does not distribute, license, or authorize
+access to those protected implementation assets.
+
+No license is granted under this document to possess, use,
+copy, modify, distribute, sublicense, commercially deploy,
+or otherwise exploit the Protected VRP Runtime.
+
+Any authorized access or use requires a separate written
+agreement defining the applicable scope and rights.
+
+================================================================
+4. NO IMPLIED IMPLEMENTATION OR COMMERCIAL LICENSE
+================================================================
+
+Publication of the VRP architecture does not grant a license
+to any nonpublic VRP implementation, proprietary software,
+confidential engineering material, or separately protected
+intellectual property.
+
+No commercial rights are granted merely by reviewing this
+repository.
+
+In particular, publication does not authorize:
+
+- use of the Protected VRP Runtime;
+- deployment of protected runtime binaries;
+- redistribution of protected components;
+- sublicensing of proprietary software;
+- access to private source repositories;
+- access to unpublished implementation details;
+- use of confidential engineering assets;
+- commercial representation as an authorized VRP provider;
+- use of VRP branding in a manner implying endorsement;
+- claims of an official partnership or certification.
+
+A separate written agreement is required for any rights
+not otherwise available under applicable law or an express
+license.
+
+Nothing in this notice is intended to claim exclusive
+copyright protection over abstract ideas, general
+engineering principles, methods, or independently developed
+implementations where such protection is unavailable
+under applicable law.
+
+================================================================
+5. REVERSE ENGINEERING AND ACCESS BOUNDARIES
+================================================================
+
+This repository does not authorize access to any private
+VRP system, protected implementation, confidential
+component, or restricted evaluation environment.
+
+Where protected components are made available under a
+separate agreement, access, inspection, analysis, reverse
+engineering, modification, and redistribution are governed
+by that agreement and applicable law.
+
+No person or organization may rely on this public
+documentation as authorization to:
+
+- bypass access controls;
+- obtain nonpublic runtime components;
+- access private infrastructure;
+- extract confidential information;
+- misuse evaluation credentials;
+- exceed an authorized testing scope;
+- interfere with protected systems.
+
+Nothing in this notice restricts rights that cannot
+lawfully be excluded, including applicable statutory
+exceptions or lawful independent research.
+
+================================================================
+6. INDEPENDENT ENGINEERING REVIEW
+================================================================
+
+VRP encourages legitimate independent technical scrutiny.
+
+The public documentation is intended to support:
+
+- architectural review;
+- examination of published invariants;
+- analysis of security assumptions;
+- independent evaluation of public models;
+- reproducible testing of public validation materials;
+- technical criticism;
+- research discussion;
+- assessment of published engineering evidence.
+
+These activities must respect applicable copyright law,
+third-party rights, access restrictions, and the licensing
+terms of any separately distributed software.
+
+Independent technical review does not create entitlement
+to private runtime access or commercial participation.
+
+A public verification result does not constitute an
+official certification of the Protected VRP Runtime.
+
+================================================================
+7. PUBLIC MODELS AND VALIDATION MATERIALS
+================================================================
+
+Public validation models, examples, test harnesses,
+reference implementations, and evidence packages may be
+published separately.
+
+Such materials are governed by the license or usage
+conditions expressly applicable to their respective files
+or repositories.
+
+This document does not revoke permissions granted under
+a separate valid license.
+
+Nor does a license covering a public model automatically
+extend to the Protected VRP Runtime.
+
+The following distinctions must remain explicit:
+
+PUBLIC ARCHITECTURE != PROTECTED IMPLEMENTATION
+
+PUBLIC MODEL != PROTECTED RUNTIME
+
+MODEL VALIDATION != PRODUCTION CERTIFICATION
+
+PUBLIC ACCESS != COMMERCIAL AUTHORIZATION
+
+ENGINEERING REVIEW != INTELLECTUAL PROPERTY TRANSFER
+
+================================================================
+8. NO PATENT OR TRADEMARK LICENSE
+================================================================
+
+No patent license is granted by this document, whether
+expressly or by implication, except to the extent that
+applicable law provides otherwise.
+
+This statement does not assert that any particular
+VRP invention is covered by an issued patent.
+
+The names "Veil Routing Protocol", "VRP", associated
+project identifiers, logos, and distinctive branding
+may be subject to applicable trademark, unfair
+competition, or other legal protections.
+
+No permission is granted to falsely imply:
+
+- official affiliation;
+- endorsement;
+- certification;
+- authorization;
+- partnership;
+- ownership of the VRP project.
+
+Descriptive or referential use permitted by applicable
+law is not prohibited by this notice.
+
+================================================================
+9. NO WARRANTY OR CERTIFICATION
+================================================================
+
+ALL MATERIALS ARE PROVIDED "AS IS" AND "AS AVAILABLE",
+WITHOUT WARRANTY OF ANY KIND, TO THE MAXIMUM EXTENT
+PERMITTED BY APPLICABLE LAW.
+
+THE RIGHTS HOLDER MAKES NO WARRANTY THAT THE MATERIALS
+ARE ERROR-FREE, COMPLETE, SECURE, SUITABLE FOR ANY
+PARTICULAR PURPOSE, OR APPROPRIATE FOR PRODUCTION USE.
+
+WITHOUT LIMITATION, NO WARRANTY IS MADE REGARDING:
+
+- correctness of every published design;
+- completeness of the threat model;
+- absence of implementation defects;
+- uninterrupted service availability;
+- zero packet loss;
+- zero downtime;
+- universal session preservation;
+- immunity from security attacks;
+- compatibility with all infrastructure;
+- regulatory compliance;
+- fitness for safety-critical deployment;
+- commercial or operational outcomes.
+
+Architecture documents, demonstrations, test results,
+and public evidence must be interpreted according to
+their stated assumptions and evaluation boundaries.
+
+No public document constitutes a blanket security
+certification or production-readiness guarantee.
+
+================================================================
+10. LIMITATION OF LIABILITY
+================================================================
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW,
+THE RIGHTS HOLDER SHALL NOT BE LIABLE FOR DAMAGES
+ARISING FROM OR RELATED TO THE USE OF, RELIANCE ON,
+OR INABILITY TO USE THE MATERIALS PROVIDED IN THIS
+REPOSITORY.
+
+THIS INCLUDES, WHERE LAWFULLY EXCLUDABLE:
+
+- business interruption;
+- loss of revenue;
+- loss of data;
+- operational disruption;
+- infrastructure failure;
+- security incidents;
+- integration failures;
+- indirect or consequential damages.
+
+NOTHING IN THIS NOTICE EXCLUDES OR LIMITS LIABILITY
+WHERE SUCH EXCLUSION OR LIMITATION IS PROHIBITED BY
+APPLICABLE LAW.
+
+================================================================
+11. SECURITY RESEARCH AND RESPONSIBLE DISCLOSURE
+================================================================
+
+Good-faith technical review of publicly available
+materials is welcome.
+
+Security researchers must not interpret public
+documentation as permission to access or test
+private infrastructure.
+
+Any security testing of nonpublic systems requires
+explicit authorization from the appropriate owner.
+
+Reports should identify, where possible:
+
+- the affected public component or specification;
+- the relevant version or commit;
+- the expected behavior;
+- the observed behavior;
+- reproduction steps;
+- supporting technical evidence;
+- the potential security impact.
+
+Do not submit credentials, private keys, access tokens,
+confidential customer information, or regulated data
+without an appropriate authorized process.
+
+Security concerns may be directed to the project
+contact listed below.
+
+================================================================
+12. THIRD-PARTY MATERIALS
+================================================================
+
+Third-party software, documentation, libraries, standards,
+protocol descriptions, and other materials retain their
+respective ownership and licensing conditions.
+
+Nothing in this document claims ownership of
+third-party intellectual property.
+
+Where an individual file contains an express third-party
+license or attribution requirement, that requirement
+must be respected.
+
+This notice applies only to rights that the identified
+rights holder is legally entitled to reserve or license.
+
+================================================================
+13. NO AUTOMATIC ENTERPRISE RIGHTS
+================================================================
+
+Public access to this repository does not establish:
+
+- an enterprise evaluation agreement;
+- a commercial relationship;
+- a reserved pilot allocation;
+- a service-level agreement;
+- a support obligation;
+- an obligation to respond to inquiries;
+- a production deployment authorization;
+- an intellectual property assignment;
+- an exclusive license;
+- a right to future runtime releases.
+
+Private engineering evaluation is conducted selectively.
+
+Any approved engagement must be documented separately,
+with explicit technical, operational, security, legal,
+and commercial boundaries.
+
+================================================================
+14. MODIFICATIONS AND REDISTRIBUTION
+================================================================
+
+Unless permitted by an applicable license, written
+authorization, hosting-platform terms, or applicable law,
+substantial copyrighted portions of this repository
+may not be reproduced, modified, or redistributed.
+
+No person may remove or falsify copyright notices,
+misrepresent authorship, or falsely claim that modified
+materials are officially approved by the VRP project.
+
+Requests for additional documentation permissions may
+be submitted to the rights holder.
+
+Permission must be obtained in writing where required.
+
+================================================================
+15. ENFORCEMENT AND LEGAL RIGHTS
+================================================================
+
+The rights holder reserves the right to protect
+copyrighted works, confidential information,
+proprietary software, and other legally protected
+intellectual property through remedies available
+under applicable law.
+
+Unauthorized access, infringement, misrepresentation,
+or misuse may be addressed through appropriate legal
+or platform enforcement procedures.
+
+The rights holder's decision not to enforce a right
+in a particular instance does not, by itself,
+constitute a general waiver of that right.
+
+This notice does not create contractual obligations
+merely through passive viewing of public materials.
+
+Any contractual restrictions beyond applicable law
+require an appropriate legally effective agreement.
+
+================================================================
+16. SEPARATE WRITTEN AGREEMENTS
+================================================================
+
+Any authorized commercial licensing, protected runtime
+access, private evaluation, integration engagement,
+or transfer of intellectual property rights must be
+governed by a separate written agreement.
+
+Such agreements should explicitly define:
+
+- the authorized parties;
+- the licensed materials;
+- the permitted scope of use;
+- access and confidentiality requirements;
+- intellectual property ownership;
+- security responsibilities;
+- evaluation boundaries;
+- redistribution restrictions;
+- commercial terms;
+- termination conditions;
+- applicable legal requirements.
+
+No informal technical discussion, repository interaction,
+or public engineering demonstration substitutes for
+such an agreement.
+
+================================================================
+17. CONTACT AND AUTHORIZATION REQUESTS
+================================================================
+
+Rights Holder:
+Vitalijus Riabovas
+
+Project:
+Veil Routing Protocol (VRP)
+
+Engineering and Licensing Contact:
+jumpingvpn@proton.me
+
+Public Engineering Specification:
+https://github.com/Endless33/VRP-specification
+
+All requests for additional permissions should clearly
+identify the requesting organization, the materials
+concerned, and the intended use.
+
+No permission is granted merely by submitting a request.
+
+================================================================
+18. FINAL RESERVATION OF RIGHTS
+================================================================
+
+The purpose of this repository is to make the public
+engineering architecture of VRP reviewable without
+disclosing or licensing its protected implementation.
+
+Engineering transparency is not abandonment of
+intellectual property.
+
+Public verification is not source-code disclosure.
+
+Independent review is not commercial authorization.
+
+Publication is not a transfer of ownership.
+
+No license to the Protected VRP Runtime is granted
+by this document.
+
+ALL RIGHTS NOT EXPRESSLY GRANTED ARE RESERVED.
+
+================================================================
+
+VEIL ROUTING PROTOCOL
+SESSION != TRANSPORT
+CONTINUITY FIRST
+EVIDENCE BEFORE CLAIMS
+
+PUBLIC ARCHITECTURE.
+PROTECTED IMPLEMENTATION.
+EXPLICIT AUTHORIZATION.
+RESERVED RIGHTS.
+
+Copyright (c) 2026 Vitalijus Riabovas.
+All rights reserved.
